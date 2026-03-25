@@ -736,7 +736,7 @@ export default function TasksPage() {
 
     const { data, error } = await supabase
       .from('tasks')
-      .insert({ family_id: familyId, name, description, due_date: dueDate, priority, sort_order: sortOrder })
+      .insert({ family_id: familyId, name, ...(description != null && { description }), due_date: dueDate, priority, sort_order: sortOrder })
       .select().single()
 
     if (error) {
@@ -765,7 +765,7 @@ export default function TasksPage() {
 
   async function handleSaveEdit(id: string, name: string, description: string | null, dueDate: string | null, priority: TaskPriority, status: TaskStatus) {
     setTasks(prev => prev.map(t => t.id === id ? { ...t, name, description, due_date: dueDate, priority, status } : t))
-    await supabase.from('tasks').update({ name, description, due_date: dueDate, priority, status }).eq('id', id)
+    await supabase.from('tasks').update({ name, ...(description != null && { description }), due_date: dueDate, priority, status }).eq('id', id)
   }
 
   async function handleStatusChange(id: string, newStatus: TaskStatus) {
