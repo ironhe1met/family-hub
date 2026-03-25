@@ -16,11 +16,18 @@ export interface Purchase {
   created_at: string
 }
 
+export type TaskPriority = 'high' | 'medium' | 'low'
+export type TaskStatus = 'new' | 'in_progress' | 'done' | 'archived'
+
 export interface Task {
   id: string
   family_id: string
-  description: string
-  is_done: boolean
+  name: string
+  description: string | null
+  due_date: string | null
+  priority: TaskPriority
+  status: TaskStatus
+  sort_order: number
   created_at: string
 }
 

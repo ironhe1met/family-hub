@@ -62,10 +62,16 @@ CREATE POLICY "purchases: family access"
 CREATE TABLE public.tasks (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   family_id   UUID NOT NULL,
-  description TEXT NOT NULL,
-  is_done     BOOLEAN NOT NULL DEFAULT FALSE,
+  name        TEXT NOT NULL,
+  description TEXT,
+  due_date    DATE,
+  priority    TEXT NOT NULL DEFAULT 'medium' CHECK (priority IN ('high', 'medium', 'low')),
+  status      TEXT NOT NULL DEFAULT 'new' CHECK (status IN ('new', 'in_progress', 'done', 'archived')),
+  sort_order  INT NOT NULL DEFAULT 0,
   created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+CREATE INDEX idx_tasks_family_status ON public.tasks (family_id, status);
 
 ALTER TABLE public.tasks ENABLE ROW LEVEL SECURITY;
 

@@ -329,12 +329,10 @@ export default function PurchasesPage() {
     const target    = activeList
     const remaining = lists.filter(l => l !== target)
 
-    // Обновляем локальное состояние
     setPurchases(prev => prev.filter(p => p.list_name !== target))
     setLists(remaining)
     setActiveList(remaining[0] ?? null)
 
-    // Удаляем из БД (каскадно по list_name + family_id)
     const { error } = await supabase
       .from('purchases').delete().eq('family_id', familyId).eq('list_name', target)
     if (error) console.error('Delete list error:', error)
@@ -387,217 +385,221 @@ export default function PurchasesPage() {
 
   return (
     <>
-      <div className="flex flex-col" style={{ height: 'calc(100dvh - 3.5rem)' }}>
+      <div className="mx-auto w-full max-w-3xl px-4 pt-5 pb-8 sm:px-6">
 
-        {/* ── 1. Кнопка «+ Новый список» или форма ввода ─────────────── */}
-        <div className="shrink-0 px-4 pt-4 pb-2">
+        {/* ── 1. Категории (табы) + кнопка «+» в одну строку ──────────── */}
+        <div className="mb-5 flex items-center gap-2">
+          {/* Кнопка добавления нового списка */}
           <AnimatePresence mode="wait">
             {showNewList ? (
               <motion.form
                 key="new-list-form"
                 onSubmit={handleAddList}
                 className="flex items-center gap-2"
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
+                initial={{ opacity: 0, width: 0 }}
+                animate={{ opacity: 1, width: 'auto' }}
+                exit={{ opacity: 0, width: 0 }}
                 transition={{ duration: 0.18 }}
               >
                 <input
                   ref={newListRef}
                   value={newListName}
                   onChange={e => setNewListName(e.target.value)}
-                  placeholder="Название списка..."
-                  className="h-10 flex-1 rounded-2xl border border-primary/50 bg-white/5 px-4 text-sm
+                  placeholder="Название..."
+                  onKeyDown={e => e.key === 'Escape' && (setShowNewList(false), setNewListName(''))}
+                  className="h-9 w-32 rounded-2xl border border-primary/50 bg-white/5 px-3 text-sm
                              outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                 />
                 <button
                   type="submit" disabled={!newListName.trim()}
-                  className="h-10 rounded-2xl bg-primary px-4 text-sm font-semibold text-primary-foreground
-                             hover:opacity-85 active:scale-95 disabled:opacity-30 transition">
-                  Добавить
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary
+                             text-primary-foreground active:scale-90 disabled:opacity-30 transition">
+                  <Plus className="size-4" />
                 </button>
                 <button
                   type="button"
                   onClick={() => { setShowNewList(false); setNewListName('') }}
-                  className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10
-                             text-muted-foreground hover:bg-white/8 active:scale-90 transition">
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full
+                             border border-white/10 text-muted-foreground hover:bg-white/8 active:scale-90 transition">
                   ✕
                 </button>
               </motion.form>
             ) : (
               <motion.button
-                key="new-list-btn"
+                key="add-btn"
                 onClick={openNewList}
-                className="flex h-9 items-center gap-1.5 rounded-2xl border border-dashed border-white/20
-                           px-4 text-sm text-muted-foreground hover:border-white/40 hover:text-foreground active:scale-95 transition"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full
+                           border border-dashed border-white/20 text-muted-foreground
+                           hover:border-white/40 hover:text-foreground active:scale-90 transition"
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                 transition={{ duration: 0.15 }}
+                title="Новый список"
               >
-                <Plus className="size-3.5" /> Новый список
+                <Plus className="size-4" />
               </motion.button>
             )}
           </AnimatePresence>
-        </div>
 
-        {/* ── 2. Вкладки + корзина удаления активного списка ─────────── */}
-        <div className="flex shrink-0 items-center gap-1.5 overflow-x-auto px-4 pb-3 [&::-webkit-scrollbar]:hidden">
-          {lists.map(list => (
-            <div key={list} className="flex shrink-0 items-center gap-0.5">
-              <button
-                onClick={() => setActiveList(list)}
-                className={`rounded-full px-4 py-1.5 text-sm font-semibold transition-all duration-200 active:scale-95 ${
-                  activeList === list
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-white/7 text-muted-foreground hover:bg-white/12 hover:text-foreground'
-                }`}
-              >
-                {list}
-              </button>
-
-              {/* Корзина — только у активной вкладки */}
-              {activeList === list && (
+          {/* Горизонтальный скролл табов */}
+          <div className="flex flex-1 items-center gap-1.5 overflow-x-auto [&::-webkit-scrollbar]:hidden">
+            {lists.map(list => (
+              <div key={list} className="flex shrink-0 items-center gap-0.5">
                 <button
-                  onClick={() => setShowDeleteList(true)}
-                  title={`Удалить список «${list}»`}
-                  className="flex h-7 w-7 items-center justify-center rounded-full
-                             text-muted-foreground/40 hover:bg-destructive/15 hover:text-destructive
-                             active:scale-90 transition"
+                  onClick={() => setActiveList(list)}
+                  className={`rounded-full px-4 py-1.5 text-sm font-semibold transition-all duration-200 active:scale-95 ${
+                    activeList === list
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-white/7 text-muted-foreground hover:bg-white/12 hover:text-foreground'
+                  }`}
                 >
-                  <Trash2 className="size-3.5" />
+                  {list}
                 </button>
-              )}
-            </div>
-          ))}
 
-          {boughtCount > 0 && (
-            <span className="ml-auto shrink-0 text-xs text-muted-foreground/50">
-              {boughtCount}/{visibleItems.length}
-            </span>
-          )}
-        </div>
+                {activeList === list && (
+                  <button
+                    onClick={() => setShowDeleteList(true)}
+                    title={`Удалить список «${list}»`}
+                    className="flex h-7 w-7 items-center justify-center rounded-full
+                               text-muted-foreground/40 hover:bg-destructive/15 hover:text-destructive
+                               active:scale-90 transition"
+                  >
+                    <Trash2 className="size-3.5" />
+                  </button>
+                )}
+              </div>
+            ))}
 
-        {/* ── 3. Форма добавления товара ──────────────────────────────── */}
-        <form onSubmit={handleAdd} className="flex shrink-0 gap-2 px-4 pb-3">
-          <div className="flex flex-1 items-center gap-2 rounded-2xl border border-white/10 bg-[#2c2c2e] px-4
-                          focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/15 transition-all">
-            <input
-              ref={inputRef}
-              value={inputName}
-              onChange={e => setInputName(e.target.value)}
-              placeholder="Добавить товар..."
-              className="h-12 flex-1 bg-transparent text-[15px] outline-none placeholder:text-muted-foreground/40"
-            />
-            {inputName && (
-              <input
-                value={inputQty}
-                onChange={e => setInputQty(e.target.value)}
-                placeholder="кол-во"
-                className="w-16 bg-transparent text-right text-sm outline-none placeholder:text-muted-foreground/35"
-              />
+            {boughtCount > 0 && (
+              <span className="ml-auto shrink-0 text-xs text-muted-foreground/50">
+                {boughtCount}/{visibleItems.length}
+              </span>
             )}
           </div>
-          <button
-            type="submit" disabled={!inputName.trim()}
-            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary
-                       text-primary-foreground hover:opacity-85 active:scale-90 disabled:opacity-30 transition">
-            <Plus className="size-5" />
-          </button>
-        </form>
+        </div>
 
-        <div className="mx-4 mb-1 h-px shrink-0 bg-white/6" />
-
-        {/* ── 4. Список товаров с AnimatePresence ─────────────────────── */}
-        <div className="flex-1 overflow-y-auto px-4 py-2">
-          {visibleItems.length === 0 ? (
-            <motion.div
-              className="flex flex-col items-center gap-3 pt-14 text-center"
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.25 }}
-            >
-              <div className="rounded-3xl bg-white/4 p-5">
-                <ShoppingCart className="size-10 text-muted-foreground/20" />
+        {/* ── 2. Заголовок активного списка + inline-добавление ─────── */}
+        {activeList && (
+          <div className="mb-4">
+            <h2 className="mb-2 text-lg font-bold">{activeList}</h2>
+            <form onSubmit={handleAdd} className="flex items-center gap-2">
+              <div className="flex flex-1 items-center gap-2 rounded-2xl border border-white/10 bg-[#2c2c2e] px-4
+                              focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/15 transition-all">
+                <input
+                  ref={inputRef}
+                  value={inputName}
+                  onChange={e => setInputName(e.target.value)}
+                  placeholder="Добавить товар..."
+                  className="h-11 flex-1 bg-transparent text-[15px] outline-none placeholder:text-muted-foreground/40"
+                />
+                {inputName && (
+                  <input
+                    value={inputQty}
+                    onChange={e => setInputQty(e.target.value)}
+                    placeholder="кол-во"
+                    className="w-16 bg-transparent text-right text-sm outline-none placeholder:text-muted-foreground/35"
+                  />
+                )}
               </div>
-              <p className="text-sm leading-relaxed text-muted-foreground/60">
-                Список пустой.<br />Добавьте первый товар!
-              </p>
-            </motion.div>
-          ) : (
-            <motion.ul layout className="flex flex-col gap-1">
-              <AnimatePresence initial={false}>
-                {visibleItems.map(item => (
-                  <motion.li
-                    key={item.id}
-                    layout
-                    initial={{ opacity: 0, y: -8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    transition={{ type: 'spring', damping: 30, stiffness: 350 }}
-                    className={`group flex items-center gap-3 rounded-2xl px-3 py-3 transition-colors duration-200 ${
-                      item.is_bought ? 'bg-white/3' : 'bg-[#2c2c2e] hover:bg-white/8'
-                    }`}
+              <button
+                type="submit" disabled={!inputName.trim()}
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary
+                           text-primary-foreground hover:opacity-85 active:scale-90 disabled:opacity-30 transition">
+                <Plus className="size-5" />
+              </button>
+            </form>
+          </div>
+        )}
+
+        {/* ── 3. Список товаров ────────────────────────────────────────── */}
+        {visibleItems.length === 0 ? (
+          <motion.div
+            className="flex flex-col items-center gap-3 pt-14 text-center"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.25 }}
+          >
+            <div className="rounded-3xl bg-white/4 p-5">
+              <ShoppingCart className="size-10 text-muted-foreground/20" />
+            </div>
+            <p className="text-sm leading-relaxed text-muted-foreground/60">
+              Список пустой.<br />Добавьте первый товар!
+            </p>
+          </motion.div>
+        ) : (
+          <motion.ul layout className="flex flex-col gap-2">
+            <AnimatePresence initial={false}>
+              {visibleItems.map(item => (
+                <motion.li
+                  key={item.id}
+                  layout
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ type: 'spring', damping: 30, stiffness: 350 }}
+                  className={`group flex items-center gap-3 rounded-2xl px-4 py-3.5 transition-all duration-200 ${
+                    item.is_bought ? 'bg-white/3' : 'bg-[#2c2c2e] shadow-sm shadow-black/20 hover:bg-white/8'
+                  }`}
+                >
+                  {/* Квадратный чекбокс Apple Green */}
+                  <button
+                    onClick={() => handleToggle(item)}
+                    className="shrink-0 flex h-[22px] w-[22px] items-center justify-center
+                               rounded-md border-2 transition-all duration-200 active:scale-85"
+                    style={item.is_bought
+                      ? { backgroundColor: '#34C759', borderColor: '#34C759' }
+                      : { borderColor: 'rgba(255,255,255,0.2)' }
+                    }
                   >
-                    {/* Квадратный чекбокс Apple Green */}
+                    {item.is_bought && (
+                      <svg className="size-3 text-white" viewBox="0 0 24 24" fill="none"
+                           stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    )}
+                  </button>
+
+                  {/* Название */}
+                  <span className={`flex-1 min-w-0 select-none text-[15px] leading-snug transition-all duration-200 ${
+                    item.is_bought
+                      ? 'text-foreground/40 line-through decoration-foreground/20'
+                      : 'text-foreground'
+                  }`}>
+                    {item.name}
+                  </span>
+
+                  {/* Правая панель: badge + кнопки */}
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    {item.quantity && (
+                      <span className={`rounded-full px-2.5 py-[3px] text-xs font-medium transition-colors ${
+                        item.is_bought
+                          ? 'bg-white/5 text-foreground/25'
+                          : 'bg-white/10 text-muted-foreground'
+                      }`}>
+                        {item.quantity}
+                      </span>
+                    )}
+
                     <button
-                      onClick={() => handleToggle(item)}
-                      className="shrink-0 flex h-[22px] w-[22px] items-center justify-center
-                                 rounded-md border-2 transition-all duration-200 active:scale-85"
-                      style={item.is_bought
-                        ? { backgroundColor: '#34C759', borderColor: '#34C759' }
-                        : { borderColor: 'rgba(255,255,255,0.2)' }
-                      }
+                      onClick={() => setEditingItem(item)}
+                      className="flex h-8 w-8 items-center justify-center rounded-xl
+                                 text-muted-foreground/30 hover:bg-white/8 hover:text-muted-foreground
+                                 active:scale-90 transition opacity-0 group-hover:opacity-100"
                     >
-                      {item.is_bought && (
-                        <svg className="size-3 text-white" viewBox="0 0 24 24" fill="none"
-                             stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                      )}
+                      <Pencil className="size-3.5" />
                     </button>
 
-                    {/* Название */}
-                    <span className={`flex-1 min-w-0 select-none text-[15px] leading-snug transition-all duration-200 ${
-                      item.is_bought
-                        ? 'text-foreground/40 line-through decoration-foreground/20'
-                        : 'text-foreground'
-                    }`}>
-                      {item.name}
-                    </span>
-
-                    {/* Правая панель: badge + кнопки */}
-                    <div className="flex shrink-0 items-center gap-1.5">
-                      {item.quantity && (
-                        <span className={`rounded-full px-2.5 py-[3px] text-xs font-medium transition-colors ${
-                          item.is_bought
-                            ? 'bg-white/5 text-foreground/25'
-                            : 'bg-white/10 text-muted-foreground'
-                        }`}>
-                          {item.quantity}
-                        </span>
-                      )}
-
-                      <button
-                        onClick={() => setEditingItem(item)}
-                        className="flex h-8 w-8 items-center justify-center rounded-xl
-                                   text-muted-foreground/30 hover:bg-white/8 hover:text-muted-foreground
-                                   active:scale-90 transition opacity-0 group-hover:opacity-100"
-                      >
-                        <Pencil className="size-3.5" />
-                      </button>
-
-                      <button
-                        onClick={() => handleDelete(item.id)}
-                        className="flex h-8 w-8 items-center justify-center rounded-xl
-                                   text-muted-foreground/30 hover:bg-destructive/15 hover:text-destructive
-                                   active:scale-90 transition"
-                      >
-                        <Trash2 className="size-3.5" />
-                      </button>
-                    </div>
-                  </motion.li>
-                ))}
-              </AnimatePresence>
-            </motion.ul>
-          )}
-        </div>
+                    <button
+                      onClick={() => handleDelete(item.id)}
+                      className="flex h-8 w-8 items-center justify-center rounded-xl
+                                 text-muted-foreground/30 hover:bg-destructive/15 hover:text-destructive
+                                 active:scale-90 transition"
+                    >
+                      <Trash2 className="size-3.5" />
+                    </button>
+                  </div>
+                </motion.li>
+              ))}
+            </AnimatePresence>
+          </motion.ul>
+        )}
       </div>
 
       {/* ── Диалоги ──────────────────────────────────────────────────────── */}
