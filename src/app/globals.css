@@ -167,8 +167,10 @@
 
 /* Glowing Purple utilities */
 .glow-primary {
-  box-shadow: 0 0 20px oklch(0.76 0.18 285 / 0.3), 0 4px 12px oklch(0.76 0.18 285 / 0.15);
+  box-shadow: 0 0 16px 4px oklch(0.76 0.18 285 / 0.3);
+  isolation: isolate;
 }
 .glow-primary-sm {
-  box-shadow: 0 0 10px oklch(0.76 0.18 285 / 0.2);
+  box-shadow: 0 0 8px 2px oklch(0.76 0.18 285 / 0.2);
+  isolation: isolate;
 }

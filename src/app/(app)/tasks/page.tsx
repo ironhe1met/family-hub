@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useMemo } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
-  Plus, Trash2, ListTodo, AlertCircle, Pencil, CalendarDays,
+  Plus, Trash2, ListTodo, AlertCircle, Pencil, CalendarDays, Clock,
   List, Columns3, ChevronDown, X, Check, AlignLeft, FolderOpen,
 } from 'lucide-react'
 import {
@@ -16,6 +16,7 @@ import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-
 import { CSS } from '@dnd-kit/utilities'
 import { supabase } from '@/lib/supabase'
 import { strings } from '@/lib/i18n'
+import { Dialog } from '@/components/ui/dialog'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import type { Task, TaskList, TaskPriority, TaskStatus } from '@/lib/types'
@@ -63,39 +64,119 @@ function parseDateLocal(dateStr: string): Date {
   return new Date(y, m - 1, d)
 }
 
+function formatDateTime(dateStr: string | null, timeStr: string | null): string {
+  if (!dateStr) return ''
+  const datePart = formatDate(dateStr)
+  return timeStr ? `${datePart}, ${timeStr}` : datePart
+}
+
 function getColumnFromOverId(overId: string | number, tasks: Task[]): TaskStatus | null {
   if (STATUSES.includes(overId as TaskStatus)) return overId as TaskStatus
   return tasks.find(t => t.id === overId)?.status ?? null
 }
 
-// ─── Backdrop & Sheet ─────────────────────────────────────────────────────────
+// ─── Scroll Column (barrel picker) ───────────────────────────────────────────
 
-function Backdrop({ onClose }: { onClose: () => void }) {
+const ITEM_H = 36
+
+function ScrollColumn({ items, selected, onSelect }: {
+  items: string[]; selected: number; onSelect: (i: number) => void
+}) {
+  const ref = useRef<HTMLDivElement>(null)
+  const isUserScroll = useRef(true)
+
+  // Scroll to selected on mount
+  useEffect(() => {
+    if (!ref.current) return
+    isUserScroll.current = false
+    ref.current.scrollTo({ top: selected * ITEM_H, behavior: 'auto' })
+    setTimeout(() => { isUserScroll.current = true }, 100)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  function handleScroll() {
+    if (!ref.current || !isUserScroll.current) return
+    const idx = Math.round(ref.current.scrollTop / ITEM_H)
+    if (idx >= 0 && idx < items.length && idx !== selected) onSelect(idx)
+  }
+
   return (
-    <motion.div className="fixed inset-0 z-40 bg-black/50"
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      transition={{ duration: 0.15 }} onClick={onClose} />
+    <div className="relative h-[108px] overflow-hidden">
+      {/* Highlight band */}
+      <div className="pointer-events-none absolute inset-x-0 top-[36px] h-[36px] rounded-sm bg-primary/12 z-10" />
+      {/* Fade top */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-[36px] bg-gradient-to-b from-surface-container-high to-transparent z-10" />
+      {/* Fade bottom */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[36px] bg-gradient-to-t from-surface-container-high to-transparent z-10" />
+
+      <div ref={ref} onScroll={handleScroll}
+        className="h-full overflow-y-auto [&::-webkit-scrollbar]:hidden"
+        style={{ scrollSnapType: 'y mandatory', paddingTop: ITEM_H, paddingBottom: ITEM_H }}>
+        {items.map((item, i) => (
+          <div key={item}
+            className={`flex h-[36px] items-center justify-center text-sm select-none cursor-pointer transition-all
+              ${i === selected ? 'text-primary font-bold text-base' : 'text-muted-foreground/50'}`}
+            style={{ scrollSnapAlign: 'center' }}
+            onClick={() => {
+              onSelect(i)
+              isUserScroll.current = false
+              ref.current?.scrollTo({ top: i * ITEM_H, behavior: 'smooth' })
+              setTimeout(() => { isUserScroll.current = true }, 300)
+            }}>
+            {item}
+          </div>
+        ))}
+      </div>
+    </div>
   )
 }
 
-function Dialog({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
+// ─── Time Scroll Picker ──────────────────────────────────────────────────────
+
+const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'))
+const MINUTES = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0'))
+
+function TimePickerInput({ value, onChange }: { value: string | null; onChange: (v: string | null) => void }) {
+  const [open, setOpen] = useState(false)
+  const [h, setH] = useState(() => value ? parseInt(value.split(':')[0]) : 9)
+  const [m, setM] = useState(() => value ? parseInt(value.split(':')[1]) : 0)
+
+  function apply(newH: number, newM: number) {
+    setH(newH); setM(newM)
+    onChange(`${String(newH).padStart(2, '0')}:${String(newM).padStart(2, '0')}`)
+  }
+
   return (
-    <>
-      <Backdrop onClose={onClose} />
-      <motion.div
-        className="fixed inset-0 z-50 flex items-center justify-center p-4"
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-        <motion.div
-          className="w-full max-w-md max-h-[85dvh] overflow-y-auto rounded-lg bg-surface-container-high p-6 shadow-2xl"
-          initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
-          transition={{ type: 'spring', damping: 25, stiffness: 350 }}
-          onClick={e => e.stopPropagation()}>
-          {children}
-        </motion.div>
-      </motion.div>
-    </>
+    <div className="relative">
+      <button type="button" onClick={() => setOpen(!open)}
+        className="flex h-11 w-full items-center gap-2 rounded-md bg-surface-container-high px-3 text-sm font-medium
+                   outline-none hover:bg-surface-container-highest transition">
+        <span className={value ? 'text-foreground' : 'text-muted-foreground/50'}>
+          {value ?? strings.tasksNoTime}
+        </span>
+        {value && (
+          <span onClick={e => { e.stopPropagation(); onChange(null); setOpen(false) }}
+            className="ml-auto text-muted-foreground/40 hover:text-foreground text-xs cursor-pointer">✕</span>
+        )}
+      </button>
+
+      {open && (
+        <div className="absolute left-0 right-0 top-12 z-50 rounded-md bg-surface-container-high shadow-lg border border-outline-variant/20 p-2">
+          <div className="flex gap-1">
+            <ScrollColumn items={HOURS} selected={h} onSelect={i => apply(i, m)} />
+            <div className="flex items-center justify-center text-lg font-bold text-primary px-0.5">:</div>
+            <ScrollColumn items={MINUTES} selected={m} onSelect={i => apply(h, i)} />
+          </div>
+          <button type="button" onClick={() => setOpen(false)}
+            className="mt-2 w-full h-8 rounded-md bg-primary/10 text-primary text-xs font-medium hover:bg-primary/15 transition">
+            OK
+          </button>
+        </div>
+      )}
+    </div>
   )
 }
+
+// Dialog imported from @/components/ui/dialog
 
 // ─── Pickers ──────────────────────────────────────────────────────────────────
 
@@ -143,7 +224,6 @@ function DatePickerButton({ value, onChange }: { value: Date | undefined; onChan
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger className="flex h-11 items-center gap-3 rounded-md bg-surface-container-high px-3
                    text-sm outline-none hover:bg-surface-container-highest transition w-full">
-        <CalendarDays className="size-4 shrink-0 text-muted-foreground" />
         <span className={`flex-1 text-left ${value ? 'text-foreground' : 'text-muted-foreground/50'}`}>
           {value ? value.toLocaleDateString('uk-UA', { day: 'numeric', month: 'long', year: 'numeric' }) : strings.tasksNoDeadline}
         </span>
@@ -223,7 +303,7 @@ function TaskListItem({ item, onToggle, onEdit, onDelete }: {
         {item.due_date && (
           <span className={`text-[11px] mt-0.5 block ${
             overdue ? 'text-destructive font-medium' : 'text-muted-foreground'
-          }`}>{overdue ? strings.tasksOverdue : ''}{formatDate(item.due_date)}</span>
+          }`}>{overdue ? strings.tasksOverdue : ''}{formatDateTime(item.due_date, item.due_time)}</span>
         )}
       </div>
 
@@ -271,7 +351,7 @@ function TaskCard({ item, onToggle, onEdit, onDelete, isDragging }: {
         <span className={`block text-sm leading-snug ${isDone ? 'text-muted-foreground line-through' : 'text-foreground'}`}>{item.name}</span>
         {item.due_date && (
           <span className={`text-[11px] mt-0.5 block ${overdue ? 'text-destructive' : 'text-muted-foreground'}`}>
-            {formatDate(item.due_date)}
+            {formatDateTime(item.due_date, item.due_time)}
           </span>
         )}
       </div>
@@ -336,13 +416,14 @@ function KanbanColumn({ status, tasks, onToggle, onEdit, onDelete }: {
 function TaskFormDialog({ item, taskLists, onSubmit, onClose, submitLabel }: {
   item?: Task
   taskLists: TaskList[]
-  onSubmit: (data: { name: string; description: string | null; dueDate: string | null; priority: TaskPriority; status: TaskStatus; listName: string }) => void
+  onSubmit: (data: { name: string; description: string | null; dueDate: string | null; dueTime: string | null; priority: TaskPriority; status: TaskStatus; listName: string }) => void
   onClose: () => void
   submitLabel: string
 }) {
   const [name, setName] = useState(item?.name ?? '')
   const [desc, setDesc] = useState(item?.description ?? '')
   const [dueDate, setDueDate] = useState<Date | undefined>(item?.due_date ? parseDateLocal(item.due_date) : undefined)
+  const [dueTime, setDueTime] = useState<string | null>(item?.due_time ?? null)
   const [priority, setPriority] = useState<TaskPriority>(item?.priority ?? 'medium')
   const [status, setStatus] = useState<TaskStatus>(item?.status ?? 'new')
   const [listName, setListName] = useState(item?.list_name ?? taskLists[0]?.name ?? '')
@@ -353,7 +434,7 @@ function TaskFormDialog({ item, taskLists, onSubmit, onClose, submitLabel }: {
   function handle(e: React.FormEvent) {
     e.preventDefault()
     if (!name.trim()) return
-    onSubmit({ name: name.trim(), description: desc.trim() || null, dueDate: dueDate ? toDateOnly(dueDate) : null, priority, status, listName })
+    onSubmit({ name: name.trim(), description: desc.trim() || null, dueDate: dueDate ? toDateOnly(dueDate) : null, dueTime, priority, status, listName })
     onClose()
   }
 
@@ -367,20 +448,29 @@ function TaskFormDialog({ item, taskLists, onSubmit, onClose, submitLabel }: {
                      outline-none placeholder:text-muted-foreground/25
                      focus:border-primary transition-colors" />
 
-        {/* Description — icon row */}
+        {/* Description — icon row, auto-resize */}
         <div className="flex items-start gap-3">
           <AlignLeft className="mt-3 size-4 shrink-0 text-muted-foreground/50" />
           <textarea value={desc} onChange={e => setDesc(e.target.value)}
-            placeholder={strings.tasksDescPlaceholder} rows={2}
-            className="flex-1 rounded-md bg-surface-container-high px-3 py-2.5 text-sm leading-relaxed
-                       outline-none focus:ring-1 focus:ring-primary/30 transition resize-none" />
+            onInput={e => { const t = e.currentTarget; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px' }}
+            placeholder={strings.tasksDescPlaceholder} rows={3}
+            className="flex-1 min-h-[120px] rounded-md bg-surface-container-high px-3 py-2.5 text-sm leading-relaxed
+                       outline-none focus:ring-1 focus:ring-primary/30 transition resize-y" />
         </div>
 
-        {/* Deadline — icon row */}
-        <div className="flex items-center gap-3">
-          <CalendarDays className="size-4 shrink-0 text-muted-foreground/50" />
-          <div className="flex-1">
-            <DatePickerButton value={dueDate} onChange={setDueDate} />
+        {/* Deadline + Time — split row */}
+        <div className="grid grid-cols-2 gap-2">
+          <div className="flex items-center gap-2">
+            <CalendarDays className="size-4 shrink-0 text-muted-foreground/50" />
+            <div className="flex-1">
+              <DatePickerButton value={dueDate} onChange={setDueDate} />
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Clock className="size-4 shrink-0 text-muted-foreground/50" />
+            <div className="flex-1">
+              <TimePickerInput value={dueTime} onChange={setDueTime} />
+            </div>
           </div>
         </div>
 
@@ -601,15 +691,15 @@ export default function TasksPage() {
 
   // ── Task CRUD ───────────────────────────────────────────────────────────
 
-  async function handleAdd(name: string, description: string | null, dueDate: string | null, priority: TaskPriority, listName: string) {
+  async function handleAdd(name: string, description: string | null, dueDate: string | null, dueTime: string | null, priority: TaskPriority, listName: string) {
     if (!familyId) return
     const targetList = listName || activeListName || strings.tasksDefaultList
     const tempId = crypto.randomUUID()
     const sortOrder = Math.floor(Date.now() / 1000)
-    const temp: Task = { id: tempId, family_id: familyId, name, description, list_name: targetList, due_date: dueDate, priority, status: 'new', sort_order: sortOrder, created_at: new Date().toISOString() }
+    const temp: Task = { id: tempId, family_id: familyId, name, description, list_name: targetList, due_date: dueDate, due_time: dueTime, priority, status: 'new', sort_order: sortOrder, created_at: new Date().toISOString() }
     setTasks(prev => [...prev, temp]); setShowAddSheet(false)
     const { data, error } = await supabase.from('tasks')
-      .insert({ family_id: familyId, name, ...(description != null && { description }), list_name: targetList, due_date: dueDate, priority, sort_order: sortOrder })
+      .insert({ family_id: familyId, name, ...(description != null && { description }), list_name: targetList, due_date: dueDate, ...(dueTime != null && { due_time: dueTime }), priority, sort_order: sortOrder })
       .select().single()
     if (error) { setTasks(prev => prev.filter(t => t.id !== tempId)) }
     else { setTasks(prev => prev.map(t => t.id === tempId ? (data as Task) : t)) }
@@ -627,9 +717,9 @@ export default function TasksPage() {
     await supabase.from('tasks').delete().eq('id', id)
   }
 
-  async function handleSaveEdit(id: string, data: { name: string; description: string | null; dueDate: string | null; priority: TaskPriority; status: TaskStatus; listName: string }) {
-    setTasks(prev => prev.map(t => t.id === id ? { ...t, name: data.name, description: data.description, due_date: data.dueDate, priority: data.priority, status: data.status, list_name: data.listName } : t))
-    await supabase.from('tasks').update({ name: data.name, ...(data.description != null && { description: data.description }), due_date: data.dueDate, priority: data.priority, status: data.status, list_name: data.listName }).eq('id', id)
+  async function handleSaveEdit(id: string, data: { name: string; description: string | null; dueDate: string | null; dueTime: string | null; priority: TaskPriority; status: TaskStatus; listName: string }) {
+    setTasks(prev => prev.map(t => t.id === id ? { ...t, name: data.name, description: data.description, due_date: data.dueDate, due_time: data.dueTime, priority: data.priority, status: data.status, list_name: data.listName } : t))
+    await supabase.from('tasks').update({ name: data.name, description: data.description, due_date: data.dueDate, due_time: data.dueTime, priority: data.priority, status: data.status, list_name: data.listName }).eq('id', id)
   }
 
   async function handleStatusChange(id: string, newStatus: TaskStatus) {
@@ -664,7 +754,7 @@ export default function TasksPage() {
       <div className="mx-auto w-full max-w-7xl px-4 pt-4 pb-24 sm:px-6">
 
         {/* ── Task list tabs ───────────────────────────────── */}
-        <div className="mb-3 flex items-center gap-2">
+        <div className="mb-3 flex items-center gap-3">
           {showNewList ? (
             <form onSubmit={handleAddTaskList} className="flex items-center gap-1.5">
               <input ref={newListRef} value={newListName} onChange={e => setNewListName(e.target.value)}
@@ -689,7 +779,7 @@ export default function TasksPage() {
             </button>
           )}
 
-          <div className="flex flex-1 items-center gap-1 overflow-x-auto [&::-webkit-scrollbar]:hidden">
+          <div className="flex flex-1 items-center gap-1 overflow-x-auto px-2 py-1.5 -my-1.5 [&::-webkit-scrollbar]:hidden">
             {/* "All" tab */}
             <button onClick={() => setActiveListName(null)}
               className={`shrink-0 rounded-md px-3.5 py-1.5 text-xs font-medium transition-colors active:scale-[0.97] ${
@@ -783,7 +873,7 @@ export default function TasksPage() {
       <AnimatePresence>
         {showAddSheet && (
           <TaskFormDialog key="add" taskLists={taskLists} submitLabel={strings.add}
-            onSubmit={d => handleAdd(d.name, d.description, d.dueDate, d.priority, d.listName)}
+            onSubmit={d => handleAdd(d.name, d.description, d.dueDate, d.dueTime, d.priority, d.listName)}
             onClose={() => setShowAddSheet(false)} />
         )}
         {editingItem && (

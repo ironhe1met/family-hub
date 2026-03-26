@@ -36,6 +36,7 @@
 | **Чекбокси** | `rounded-[3px]` | Майже квадратні |
 | **Бейджі** | `rounded-sm` | Компактні прямокутники |
 | **Kanban колонки** | `rounded-md` | Строгі контейнери |
+| **Scroll-контейнери табів** | — | `overflow-x-auto px-2 py-1.5 -my-1.5` — padding для glow, щоб не обрізалось |
 | **Заборона** | — | `rounded-full`, `rounded-2xl`, `rounded-3xl` заборонені для інпутів, карток, табів |
 
 ### 0.3 МОДАЛЬНІ ВІКНА (Dialog)
@@ -60,12 +61,13 @@
 
 | Модуль | Статус | Описание |
 |--------|--------|----------|
-| Auth | Done | Email/Password через Supabase, auto-создание профиля с family_id |
-| Layout | Done | Mobile-first, Header с TopNav (4 вкладки), Dark/Light theme toggle |
-| Покупки | Done | Категории-списки, CRUD, чекбокс + зачеркивание, Optimistic UI, Realtime |
-| Задачи | Done | Kanban (4 статуса) + List view, Drag & Drop, приоритеты, дедлайны, Realtime |
-| Проекты | Placeholder | Страница-заглушка, ждет Этапа 6 |
-| Идеи | Placeholder | Страница-заглушка, ждет Этапа 7 |
+| Auth | Done | Email/Password через Supabase, auto-створення профілю з family_id, Logout |
+| Layout | Done | Mobile-first, Header з TopNav (5 вкладок), профіль з аватаром, Dark/Light toggle |
+| Покупки | Done | Списки, CRUD, чекбокс, Undo-видалення, Optimistic UI, Realtime |
+| Завдання | Done | Kanban + List, Drag & Drop, пріоритети, дедлайни + час, списки завдань, Realtime |
+| Рецепти | Placeholder | Сторінка-заглушка, чекає Етап 6 |
+| Проєкти | Placeholder | Сторінка-заглушка, чекає Етап 8 |
+| Ідеї | Placeholder | Сторінка-заглушка, чекає Етап 7 |
 | Deploy | Done | Production на home.ironhelmet.com.ua, PM2 process manager |
 
 ### Supabase
@@ -76,11 +78,12 @@
 
 ### Структура маршрутов
 ```
-(auth)/login     — страница входа
+(auth)/login     — сторінка входу
 (app)/purchases  — модуль покупок
-(app)/tasks      — модуль задач (Kanban + List)
-(app)/projects   — модуль проектов (placeholder)
-(app)/ideas      — модуль идей (placeholder)
+(app)/tasks      — модуль завдань (Kanban + List)
+(app)/recipes    — модуль рецептів (placeholder)
+(app)/projects   — модуль проєктів (placeholder)
+(app)/ideas      — модуль ідей (placeholder)
 ```
 
 ---
@@ -95,80 +98,91 @@
 - Всі рядки беруться з `strings`, НІЯКИХ захардкоджених текстів у компонентах
 - `lang="uk"` в `<html>`
 
-### 2.2 Кольорова палітра (MD3)
+### 2.2 Кольорова палітра (Glowing Purple)
 | Токен | Dark | Light | Де використовується |
 |-------|------|-------|---------------------|
-| Background / Surface | `#1a1b1f` | `#F3F2F7` | Основний фон сторінки |
-| Surface Container | `#2b2d31` | `#EDEDF0` | Картки, інпути, Sheet-діалоги |
-| Surface Container High | `#36383d` | `#E3E3E7` | Hover, dragging-стан |
-| Primary | `oklch(0.72 0.16 270)` | `oklch(0.55 0.18 270)` | Кнопки, акценти, FAB (м'який фіолетовий) |
-| Success | `oklch(0.7 0.15 150)` | `oklch(0.55 0.16 150)` | Чекбокси "виконано" |
+| Background / Surface | `~#292929` | `#F3F2F7` | Основний фон сторінки |
+| Surface Container | `~#363638` | `#EDEDF0` | Картки, плитки, Dialog |
+| Surface Container High | `~#434345` | `#E3E3E7` | Інпути, hover |
+| Surface Container Highest | `~#505052` | `#DDDDE0` | Elevated hover |
+| Primary | `oklch(0.76 0.18 285)` | `oklch(0.55 0.2 280)` | Glowing Purple — кнопки, FAB, активні таби |
+| Success | `oklch(0.7 0.15 150)` | `oklch(0.55 0.16 150)` | Чекбокси "виконано", бейджі кількості |
 | Destructive | `oklch(0.7 0.19 25)` | `oklch(0.55 0.22 25)` | Видалення, прострочені завдання |
-| Warning | `oklch(0.75 0.14 80)` | `oklch(0.7 0.15 80)` | Середній пріоритет |
-| Outline | `oklch(0.5 0.01 260)` | `oklch(0.55 0.01 260)` | Рамки чекбоксів, розділювачі |
-| Outline Variant | `oklch(0.35 0.01 260)` | `oklch(0.8 0.01 260)` | Тонкі границі, інпути |
-| Muted text | `text-muted-foreground` | `text-muted-foreground` | Підписи, дати, плейсхолдери |
 
-### 2.3 Скруглення (Border Radius)
-| Елемент | Клас |
-|---------|------|
-| Картки завдань/покупок | `rounded-2xl` (16px) |
-| Кнопки основні (MD3 Filled) | `rounded-full` (pill) |
-| Інпути, текстареа | `rounded-2xl` (16px) |
-| Bottom Sheet (mobile) | `rounded-t-[28px]` |
-| Bottom Sheet (desktop) | `rounded-[28px]` |
-| Pill-бейджі, таби | `rounded-full` |
-| Segmented Button | `rounded-full` з `border border-outline-variant` |
-| FAB | `rounded-2xl` (16px) |
-| Kanban-колонки | `rounded-2xl` з `overflow-hidden` |
+### 2.3 Скруглення (Google Workspace — сувора геометрія)
+| Елемент | Клас | Примітка |
+|---------|------|----------|
+| **Кнопка Save/Submit** | `rounded-full` | ЄДИНИЙ pill-елемент |
+| **FAB** | `rounded-xl` | Квадратна з м'якими кутами |
+| **Dialog** | `rounded-lg` | Строге вікно |
+| **Картки/плитки** | `rounded-md` | Мінімальне скруглення |
+| **Інпути, textarea, select** | `rounded-md` | Квадратні поля |
+| **Таби/вкладки** | `rounded-md` | Прямокутні, НЕ pill |
+| **Чекбокси** | `rounded-[3px]` | Майже квадратні |
+| **Бейджі** | `rounded-sm` | Компактні |
+| **Kanban колонки** | `rounded-md` | З `overflow-hidden` |
+| **View Toggle** | `rounded-md` | `border border-outline-variant/30` |
+| **Заборонено** | — | `rounded-2xl`, `rounded-3xl`, `rounded-full` для інпутів/карток/табів |
 
 ### 2.4 Відступи та простір
 | Контекст | Правило |
 |----------|---------|
-| Між секціями на сторінці | `mb-8` (32px) |
+| Між секціями | `mb-3` (status sections), `gap-3` (form fields) |
 | Між колонками Kanban | `gap-4 sm:gap-6` |
-| Внутрішні паддінги карток | `px-4 py-3.5` |
-| Внутрішні паддінги Sheet | `p-6` |
-| Сторінкові поля (mobile) | `px-4` |
-| Сторінкові поля (desktop) | `sm:px-6` |
-| Контент-контейнер | `max-w-7xl mx-auto` (Tasks), `max-w-3xl` (Purchases) |
-| Padding bottom (для FAB) | `pb-24` |
+| Внутрішні паддінги карток | `px-3 py-2.5` |
+| Внутрішні паддінги Dialog | `p-6` |
+| Сторінкові поля | `px-4 sm:px-6` |
+| Контейнер | `max-w-7xl` (Tasks), `max-w-3xl` (Purchases) |
+| Padding bottom (FAB) | `pb-24` |
+| Scroll-контейнери табів | `overflow-x-auto px-2 py-1.5 -my-1.5` (glow padding) |
 
-### 2.5 Тіні (Elevation — MD3)
-| Елемент | Тінь |
-|---------|------|
-| Картки (idle) | `shadow-sm shadow-black/5 dark:shadow-black/20` |
+### 2.5 Тіні та Glow
+| Елемент | Ефект |
+|---------|-------|
+| FAB | `.glow-primary` — `box-shadow: 0 0 16px 4px primary/30` |
+| Активний таб | `.glow-primary-sm` — `box-shadow: 0 0 8px 2px primary/20` |
 | Картки (dragging) | `shadow-xl ring-2 ring-primary/30` |
-| Bottom Sheet | `shadow-2xl` |
-| FAB | `shadow-lg shadow-primary/25` |
-| Kanban-колонки | `border border-outline-variant/30` (outlined style) |
+| Dialog | `shadow-2xl` |
+| Dropdown menu | `shadow-lg border border-outline-variant/20` |
 
 ### 2.6 Розміри елементів
 | Елемент | Висота | Клас |
 |---------|--------|------|
-| Primary кнопки | 48px | `h-12 rounded-full` |
-| Інпути | 56px | `h-14 rounded-2xl` |
-| Вторинні кнопки | 40px | `h-10` |
-| Compact кнопки (tab, toggle) | 36px | `h-9` |
-| Чекбокс | 22x22px | `rounded-[6px]` |
+| Save кнопка | 40px | `h-10 rounded-full bg-primary px-6` |
+| Cancel кнопка | 40px | `h-10 rounded-md px-5` (ghost) |
+| Інпути в формах | 44px | `h-11 rounded-md bg-surface-container-high` |
+| Назва (header-input) | 48px | `h-12 border-b-2 text-xl font-medium` |
+| Таби | 32px | `h-8 rounded-md px-3.5 py-1.5` |
+| Чекбокс | 20x20px | `rounded-[3px]` |
 | Header | 56px | `h-14` |
-| FAB | 56x56px | `h-14 w-14 rounded-2xl` |
+| FAB | 56x56px | `h-14 w-14 rounded-xl` |
+| Аватар | 32x32px | `h-8 w-8 rounded-full bg-primary` |
 
-### 2.7 Компоненти MD3
-**FAB (Floating Action Button):**
-- `fixed bottom-6 right-6 z-30`
-- `h-14 w-14 rounded-2xl bg-primary shadow-lg shadow-primary/25`
-- `whileHover={{ scale: 1.05 }}` + `whileTap={{ scale: 0.9 }}`
+### 2.7 Компоненти
+**Dialog (центрований, замість Sheet):**
+- `rounded-lg bg-surface-container-high p-6 shadow-2xl max-w-md`
+- Анімація: `scale: 0.95 → 1`, spring `damping: 25, stiffness: 350`
+- Назва: `border-b-2 border-outline-variant/30 focus:border-primary`
+- Поля: icon зліва (`size-4 text-muted-foreground/50`) + input
+- Імпорт: `import { Dialog, Backdrop } from '@/components/ui/dialog'`
 
-**Bottom Sheet:**
-- Mobile: `rounded-t-[28px]`, drag-handle `h-1 w-8 rounded-full bg-outline-variant/40`
-- Desktop: centered `rounded-[28px] max-w-sm`
-- Spring: `damping: 26, stiffness: 300`
+**FAB:**
+- `fixed bottom-6 right-6 z-30 rounded-xl bg-primary glow-primary`
+- `hover:scale-105 active:scale-90`
 
-**Segmented Button (View Toggle):**
+**Profile Menu:**
+- Аватар: `rounded-full bg-primary` з першою літерою email
+- Dropdown: `rounded-lg bg-surface-container-high shadow-lg`
+- Пункти: Settings (alert), Logout (supabase.auth.signOut)
+
+**Time Scroll Picker:**
+- Два вертикальних барабани (години 00-23, хвилини 00-59)
+- `scroll-snap-type: y mandatory`, `ITEM_H = 36px`
+- Активний: `text-primary font-bold`, gradient fade зверху/знизу
+
+**View Toggle (Segmented Button):**
 ```
-Контейнер: h-10 w-[220px] rounded-full border border-outline-variant
-Сегмент:   flex-1 text-[13px] font-medium
+Контейнер: h-9 w-[200px] rounded-md border border-outline-variant/30
 Активний:  text-primary + motion.div layoutId bg-primary/10
 Неактивний: text-muted-foreground hover:text-foreground
 ```
@@ -177,12 +191,10 @@
 | Елемент | Параметри |
 |---------|-----------|
 | Натискання кнопки | `active:scale-[0.98]` |
-| Sheet появлення | `y: 60 → 0`, spring `damping: 26, stiffness: 300` |
+| Dialog появлення | `scale: 0.95 → 1`, spring `damping: 25, stiffness: 350` |
 | Backdrop | `bg-black/50`, fade 150ms |
-| Елементи списку | `layout` + AnimatePresence, enter `y: -8`, exit `x: -20` |
-| List spring | `type: 'spring', damping: 30, stiffness: 350` |
-| Collapse секцій | `height: 0 → auto`, duration 200ms |
-| FAB hover | `scale: 1.05` (whileHover) |
+| Undo toast | `y: 80 → 0`, spring |
+| FAB hover | `hover:scale-105` |
 
 ### 2.9 Патерни
 **Optimistic UI:**
@@ -224,36 +236,52 @@
 
 ---
 
-## 4. КОМАНДЫ ДЕПЛОЯ
+## 4. ДЕПЛОЙ ТА МІГРАЦІЇ
 
-### Быстрый деплой (одна команда)
+> Повна інструкція для нового сервера: **SETUP.md**
+
+### Env файли (3 шт)
+| Файл | Для чого | Обов'язковий |
+|------|----------|-------------|
+| `.env.local` | Supabase API ключі (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`) | Так |
+| `.env.supabase` | PostgreSQL connection string для міграцій (`SUPABASE_DB_URL`) | Так |
+| `.env.git` | GitHub token для push.sh (`GITHUB_TOKEN`, `GITHUB_USER`, `GITHUB_REPO`) | Ні |
+
+### Скрипти
+| Скрипт | Що робить |
+|--------|-----------|
+| `./deploy.sh` | git pull → npm install → **migrate.sh** → build → pm2 restart |
+| `./migrate.sh` | Знаходить нові файли в `supabase/migrations/`, запускає через psql, записує в `_migrations` |
+| `./push.sh "msg"` | git add → commit → push через token |
+
+### Система міграцій
+```
+supabase/migrations/
+  000_migrations_table.sql   ← табличка _migrations
+  001_initial_schema.sql     ← profiles, purchases, tasks, projects, ideas
+  002_task_description.sql   ← description в tasks
+  003_purchase_and_task_lists.sql  ← purchase_lists, task_lists
+  004_due_time.sql           ← due_time в tasks
+  005_recipes.sql            ← таблиця recipes
+```
+- Кожна міграція має номер і виконується ОДИН раз
+- `migrate.sh` автоматично визначає які ще не запущені
+- При додаванні нового функціоналу — створити `006_xxx.sql`
+
+### Перший запуск
 ```bash
+git clone <repo-url> family_planner && cd family_planner
+cp .env.local.example .env.local        # заповнити ключі
+cp .env.supabase.example .env.supabase  # заповнити DB URL
+chmod +x deploy.sh migrate.sh push.sh
 ./deploy.sh
 ```
 
-### Что делает скрипт
-1. Проверяет наличие `.env.local` (ключи Supabase), Node.js и PM2
-2. `git pull --ff-only` — обновление кода
-3. `npm install` — установка зависимостей
-4. `npm run build` — сборка Next.js
-5. `pm2 restart family-app` (или первый запуск, если процесс не существует)
-6. Очистка fetch-cache
-
-### Первый запуск на сервере
+### PM2
 ```bash
-git clone <repo-url> family_planner
-cd family_planner
-cp .env.local.example .env.local   # заполнить ключи Supabase
-chmod +x deploy.sh
-./deploy.sh
-```
-
-### Полезные команды PM2
-```bash
-pm2 status              # статус процессов
-pm2 logs family-app     # логи приложения
+pm2 status              # статус
+pm2 logs family-app     # логи
 pm2 restart family-app  # перезапуск
-pm2 stop family-app     # остановка
 ```
 
 ---

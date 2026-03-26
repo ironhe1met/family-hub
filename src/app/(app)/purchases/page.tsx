@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { Plus, Trash2, ShoppingCart, AlertCircle, Pencil, X, Check, Package, Undo2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { strings } from '@/lib/i18n'
+import { Dialog } from '@/components/ui/dialog'
 import type { Purchase, PurchaseList } from '@/lib/types'
 
 // ─── Sorting ──────────────────────────────────────────────────────────────────
@@ -14,37 +15,6 @@ function sortPurchases(items: Purchase[]): Purchase[] {
     new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
   )
   return [...active, ...bought]
-}
-
-// ─── Backdrop & Dialog ────────────────────────────────────────────────────────
-function Backdrop({ onClose }: { onClose: () => void }) {
-  return (
-    <motion.div
-      className="fixed inset-0 z-40 bg-black/50"
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      transition={{ duration: 0.15 }}
-      onClick={onClose}
-    />
-  )
-}
-
-function Dialog({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
-  return (
-    <>
-      <Backdrop onClose={onClose} />
-      <motion.div
-        className="fixed inset-0 z-50 flex items-center justify-center p-4"
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-        <motion.div
-          className="w-full max-w-md max-h-[85dvh] overflow-y-auto rounded-lg bg-surface-container-high p-6 shadow-2xl"
-          initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
-          transition={{ type: 'spring', damping: 25, stiffness: 350 }}
-          onClick={e => e.stopPropagation()}>
-          {children}
-        </motion.div>
-      </motion.div>
-    </>
-  )
 }
 
 // ─── Edit Item Dialog (Google style) ──────────────────────────────────────────
@@ -452,7 +422,7 @@ export default function PurchasesPage() {
           )}
 
           {/* List tabs */}
-          <div className="flex flex-1 items-center gap-1 overflow-x-auto [&::-webkit-scrollbar]:hidden">
+          <div className="flex flex-1 items-center gap-1 overflow-x-auto px-2 py-1.5 -my-1.5 [&::-webkit-scrollbar]:hidden">
             {lists.map(list => (
               <div key={list.id} className="flex shrink-0 items-center">
                 <button onClick={() => setActiveListName(list.name)}

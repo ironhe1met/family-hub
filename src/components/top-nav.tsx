@@ -2,13 +2,14 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { ShoppingCart, CheckSquare, FolderKanban, Lightbulb } from 'lucide-react'
+import { ShoppingCart, CheckSquare, CookingPot, FolderKanban, Lightbulb } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { strings } from '@/lib/i18n'
 
 const tabs = [
   { href: '/purchases', label: strings.navPurchases, icon: ShoppingCart },
   { href: '/tasks',     label: strings.navTasks,     icon: CheckSquare },
+  { href: '/recipes',   label: strings.navRecipes,   icon: CookingPot },
   { href: '/projects',  label: strings.navProjects,  icon: FolderKanban },
   { href: '/ideas',     label: strings.navIdeas,     icon: Lightbulb },
 ]
@@ -25,7 +26,7 @@ export function TopNav() {
             key={href}
             href={href}
             className={cn(
-              'relative flex flex-col items-center gap-[3px] rounded-md px-3.5 py-2 transition-all duration-200',
+              'relative flex flex-col items-center gap-[3px] rounded-md px-3 py-2 transition-all duration-200',
               isActive
                 ? 'text-primary'
                 : 'text-muted-foreground hover:text-foreground hover:bg-primary/8'

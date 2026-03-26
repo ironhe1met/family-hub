@@ -60,6 +60,8 @@ const ua = {
   tasksDescPlaceholder: 'Деталі завдання...',
   tasksDeadline: 'Дедлайн',
   tasksNoDeadline: 'Без дедлайну',
+  tasksTime: 'Час',
+  tasksNoTime: 'Без часу',
   tasksPriority: 'Пріоритет',
   tasksStatus: 'Статус',
   tasksOverdue: 'Прострочено: ',
@@ -89,9 +91,20 @@ const ua = {
   priorityMedium: 'Середній',
   priorityLow: 'Низький',
 
+  // Profile menu
+  profileSettings: 'Налаштування',
+  profileLogout: 'Вийти',
+
+  // Nav
+  navRecipes: 'Рецепти',
+
   // Projects
   projectsTitle: 'Проєкти',
-  projectsPlaceholder: 'Модуль буде додано на Етапі 6.',
+  projectsPlaceholder: 'Модуль буде додано на Етапі 8.',
+
+  // Recipes
+  recipesTitle: 'Рецепти',
+  recipesPlaceholder: 'Модуль буде додано на Етапі 6.',
 
   // Ideas
   ideasTitle: 'Ідеї',
@@ -157,6 +170,8 @@ const en: Strings = {
   tasksDescPlaceholder: 'Task details...',
   tasksDeadline: 'Deadline',
   tasksNoDeadline: 'No deadline',
+  tasksTime: 'Time',
+  tasksNoTime: 'No time',
   tasksPriority: 'Priority',
   tasksStatus: 'Status',
   tasksOverdue: 'Overdue: ',
@@ -179,8 +194,13 @@ const en: Strings = {
   priorityHigh: 'High',
   priorityMedium: 'Medium',
   priorityLow: 'Low',
+  profileSettings: 'Settings',
+  profileLogout: 'Log out',
+  navRecipes: 'Recipes',
   projectsTitle: 'Projects',
-  projectsPlaceholder: 'Module will be added in Stage 6.',
+  projectsPlaceholder: 'Module will be added in Stage 8.',
+  recipesTitle: 'Recipes',
+  recipesPlaceholder: 'Module will be added in Stage 6.',
   ideasTitle: 'Ideas',
   ideasPlaceholder: 'Module will be added in Stage 7.',
   profileNotFound: 'Profile not found. Run SQL script to create profiles.',

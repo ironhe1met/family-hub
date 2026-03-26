@@ -42,6 +42,7 @@ export interface Task {
   description: string | null
   list_name: string
   due_date: string | null
+  due_time: string | null
   priority: TaskPriority
   status: TaskStatus
   sort_order: number
@@ -65,6 +66,17 @@ export interface ProjectItem {
   estimated_cost: number | null
   currency: 'UAH' | 'USD' | null
   url: string | null
+  created_at: string
+}
+
+export interface Recipe {
+  id: string
+  family_id: string
+  title: string
+  description: string | null
+  ingredients: string | null
+  instructions: string | null
+  image_url: string | null
   created_at: string
 }
 
