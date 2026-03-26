@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { Button } from '@/components/ui/button'
+import { strings } from '@/lib/i18n'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -20,7 +20,7 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithPassword({ email, password })
 
     if (error) {
-      setError('Неверный email или пароль')
+      setError(strings.loginError)
       setLoading(false)
     } else {
       router.replace('/purchases')
@@ -30,12 +30,12 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center px-6">
       <div className="w-full max-w-sm">
-        <h1 className="mb-8 text-center text-2xl font-semibold">Семейный планировщик</h1>
+        <h1 className="mb-8 text-center text-2xl font-medium">{strings.appName}</h1>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
             <label htmlFor="email" className="text-sm font-medium">
-              Email
+              {strings.email}
             </label>
             <input
               id="email"
@@ -44,14 +44,15 @@ export default function LoginPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="h-12 rounded-lg border border-input bg-background px-4 text-base outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
+              className="h-12 rounded-md border border-outline-variant/40 bg-surface-container-high px-4 text-base outline-none
+                         focus:border-primary focus:ring-1 focus:ring-primary/30 transition"
               placeholder="example@mail.com"
             />
           </div>
 
           <div className="flex flex-col gap-1.5">
             <label htmlFor="password" className="text-sm font-medium">
-              Пароль
+              {strings.password}
             </label>
             <input
               id="password"
@@ -60,8 +61,9 @@ export default function LoginPage() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="h-12 rounded-lg border border-input bg-background px-4 text-base outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
-              placeholder="••••••••"
+              className="h-12 rounded-md border border-outline-variant/40 bg-surface-container-high px-4 text-base outline-none
+                         focus:border-primary focus:ring-1 focus:ring-primary/30 transition"
+              placeholder="********"
             />
           </div>
 
@@ -69,14 +71,14 @@ export default function LoginPage() {
             <p className="text-sm text-destructive">{error}</p>
           )}
 
-          <Button
+          <button
             type="submit"
             disabled={loading}
-            className="h-12 w-full text-base"
-            size="lg"
+            className="h-11 w-full rounded-full bg-primary text-primary-foreground text-base font-medium
+                       glow-primary-sm hover:opacity-90 active:scale-[0.98] disabled:opacity-50 transition"
           >
-            {loading ? 'Вход...' : 'Войти'}
-          </Button>
+            {loading ? strings.loggingIn : strings.login}
+          </button>
         </form>
       </div>
     </div>

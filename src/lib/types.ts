@@ -5,6 +5,14 @@ export interface Profile {
   created_at: string
 }
 
+export interface PurchaseList {
+  id: string
+  family_id: string
+  name: string
+  sort_order: number
+  created_at: string
+}
+
 export interface Purchase {
   id: string
   family_id: string
@@ -12,6 +20,14 @@ export interface Purchase {
   name: string
   quantity: string | null
   is_bought: boolean
+  sort_order: number
+  created_at: string
+}
+
+export interface TaskList {
+  id: string
+  family_id: string
+  name: string
   sort_order: number
   created_at: string
 }
@@ -24,6 +40,7 @@ export interface Task {
   family_id: string
   name: string
   description: string | null
+  list_name: string
   due_date: string | null
   priority: TaskPriority
   status: TaskStatus

@@ -6,6 +6,7 @@ import { useTheme } from 'next-themes'
 import { Sun, Moon, Home } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { TopNav } from '@/components/top-nav'
+import { strings } from '@/lib/i18n'
 
 function ThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme()
@@ -15,10 +16,10 @@ function ThemeToggle() {
   return (
     <button
       onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
-      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl
-                 text-muted-foreground hover:bg-white/8 hover:text-foreground
+      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md
+                 text-muted-foreground hover:bg-primary/8 hover:text-foreground
                  transition-all active:scale-90"
-      aria-label="Сменить тему"
+      aria-label={strings.changeTheme}
     >
       {resolvedTheme === 'dark'
         ? <Sun className="size-[18px]" />
@@ -52,21 +53,21 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      {/* ── Шапка: Logo | Nav (центр) | ThemeToggle ── */}
-      <header className="sticky top-0 z-50 border-b border-white/8 bg-[#1c1c1e]/80 backdrop-blur-xl backdrop-saturate-150">
+      {/* ── MD3 Top App Bar ── */}
+      <header className="sticky top-0 z-50 border-b border-outline-variant/20 bg-surface-container/90 backdrop-blur-xl">
         <div className="grid h-14 grid-cols-[40px_1fr_40px] items-center px-2">
 
-          {/* Слева: логотип */}
+          {/* Logo */}
           <div className="flex items-center justify-center">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/15">
+            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/12">
               <Home className="size-4 text-primary" />
             </div>
           </div>
 
-          {/* Центр: навигация */}
+          {/* Nav */}
           <TopNav />
 
-          {/* Справа: переключатель темы */}
+          {/* Theme toggle */}
           <div className="flex items-center justify-center">
             <ThemeToggle />
           </div>
@@ -74,7 +75,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      <main className="flex-1 overflow-hidden">{children}</main>
+      <main className="flex-1">{children}</main>
     </div>
   )
 }
