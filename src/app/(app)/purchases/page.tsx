@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Plus, Trash2, ShoppingCart, AlertCircle, Pencil, X, Check, Package } from 'lucide-react'
+import { Plus, Trash2, ShoppingCart, AlertCircle, Pencil, X, Check, Package, Undo2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { strings } from '@/lib/i18n'
 import type { Purchase, PurchaseList } from '@/lib/types'
@@ -157,6 +157,8 @@ export default function PurchasesPage() {
   const [showDeleteList, setShowDeleteList] = useState(false)
   const [renamingList, setRenamingList]     = useState<string | null>(null)
   const [renameValue, setRenameValue]       = useState('')
+  const [undoItem, setUndoItem]             = useState<Purchase | null>(null)
+  const undoTimer                            = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const inputRef   = useRef<HTMLInputElement>(null)
   const newListRef = useRef<HTMLInputElement>(null)
@@ -327,9 +329,31 @@ export default function PurchasesPage() {
     if (error) setPurchases(prev => prev.map(p => p.id === item.id ? { ...p, is_bought: item.is_bought } : p))
   }
 
-  async function handleDelete(id: string) {
+  function handleDelete(id: string) {
+    const item = purchases.find(p => p.id === id)
+    if (!item) return
+
+    // Clear any previous undo timer
+    if (undoTimer.current) clearTimeout(undoTimer.current)
+
+    // Remove from UI immediately
     setPurchases(prev => prev.filter(p => p.id !== id))
-    await supabase.from('purchases').delete().eq('id', id)
+    setUndoItem(item)
+
+    // Schedule actual DB delete after 4 seconds
+    undoTimer.current = setTimeout(async () => {
+      setUndoItem(null)
+      await supabase.from('purchases').delete().eq('id', id)
+      undoTimer.current = null
+    }, 4000)
+  }
+
+  function handleUndo() {
+    if (!undoItem || !undoTimer.current) return
+    clearTimeout(undoTimer.current)
+    undoTimer.current = null
+    setPurchases(prev => [...prev, undoItem])
+    setUndoItem(null)
   }
 
   async function handleSaveEdit(id: string, name: string, qty: string) {
@@ -544,13 +568,13 @@ export default function PurchasesPage() {
                       <button onClick={() => setEditingItem(item)}
                         className="flex h-7 w-7 items-center justify-center rounded-lg
                                    text-muted-foreground/20 hover:bg-primary/10 hover:text-primary
-                                   active:scale-90 transition opacity-0 group-hover:opacity-100">
+                                   active:scale-90 transition">
                         <Pencil className="size-3" />
                       </button>
                       <button onClick={() => handleDelete(item.id)}
                         className="flex h-7 w-7 items-center justify-center rounded-lg
                                    text-muted-foreground/20 hover:bg-destructive/10 hover:text-destructive
-                                   active:scale-90 transition opacity-0 group-hover:opacity-100">
+                                   active:scale-90 transition">
                         <Trash2 className="size-3" />
                       </button>
                     </div>
@@ -572,6 +596,27 @@ export default function PurchasesPage() {
         {showDeleteList && activeListName && (
           <DeleteListDialog key="del-list" listName={activeListName} count={visibleItems.length}
             onConfirm={handleDeleteList} onClose={() => setShowDeleteList(false)} />
+        )}
+      </AnimatePresence>
+
+      {/* Undo toast */}
+      <AnimatePresence>
+        {undoItem && (
+          <motion.div
+            key="undo"
+            initial={{ y: 80, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 80, opacity: 0 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 350 }}
+            className="fixed bottom-6 left-4 right-4 z-50 mx-auto flex max-w-sm items-center gap-3
+                       rounded-md bg-foreground px-4 py-3 shadow-lg"
+          >
+            <span className="flex-1 text-sm font-medium text-background">{strings.purchasesItemDeleted}</span>
+            <button onClick={handleUndo}
+              className="flex items-center gap-1.5 rounded-md px-3 py-1 text-sm font-semibold text-primary
+                         hover:bg-primary/15 active:scale-[0.97] transition">
+              <Undo2 className="size-3.5" />
+              {strings.undo}
+            </button>
+          </motion.div>
         )}
       </AnimatePresence>
     </>

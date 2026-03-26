@@ -228,7 +228,7 @@ function TaskListItem({ item, onToggle, onEdit, onDelete }: {
       </div>
 
       {/* Actions */}
-      <div className="flex shrink-0 items-center gap-0.5 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="flex shrink-0 items-center gap-0.5 mt-0.5 transition-opacity">
         <button onClick={onEdit}
           className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground/40 hover:text-primary hover:bg-primary/10 transition">
           <Pencil className="size-3" />
@@ -275,7 +275,7 @@ function TaskCard({ item, onToggle, onEdit, onDelete, isDragging }: {
           </span>
         )}
       </div>
-      <div className="flex shrink-0 items-center gap-0.5 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="flex shrink-0 items-center gap-0.5 mt-0.5 transition-opacity">
         <button onClick={onEdit} className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground/40 hover:text-primary hover:bg-primary/10 transition">
           <Pencil className="size-2.5" />
         </button>

@@ -42,6 +42,8 @@ const ua = {
   purchasesQty: 'к-сть',
   purchasesQtyPlaceholder: 'напр. 2 шт, 500 г',
   purchasesEditItem: 'Редагувати товар',
+  purchasesItemDeleted: 'Товар видалено',
+  undo: 'Скасувати',
   purchasesDeleteList: 'Видалити список?',
   purchasesDeleteListMsg: (name: string, count: number) =>
     `Список "${name}" та ${count > 0 ? `${count} товар(и/ів)` : 'усі товари'} будуть видалені назавжди.`,
@@ -139,6 +141,8 @@ const en: Strings = {
   purchasesQty: 'qty',
   purchasesQtyPlaceholder: 'e.g. 2 pcs, 500 g',
   purchasesEditItem: 'Edit item',
+  purchasesItemDeleted: 'Item deleted',
+  undo: 'Undo',
   purchasesDeleteList: 'Delete list?',
   purchasesDeleteListMsg: (name: string, count: number) =>
     `List "${name}" and ${count > 0 ? `${count} item(s)` : 'all items'} will be permanently deleted.`,
