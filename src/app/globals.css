@@ -1,0 +1,111 @@
+@import "tailwindcss";
+
+/* ==========================================
+   Design System — MD3 Google Style
+   Accent: Blue
+   ========================================== */
+
+@theme {
+  /* Dark Mode (default) */
+  --color-background: oklch(0.185 0.005 260);
+  --color-surface: oklch(0.22 0.006 260);
+  --color-surface-container: oklch(0.26 0.007 260);
+  --color-surface-container-high: oklch(0.31 0.007 260);
+  --color-surface-elevated: oklch(0.36 0.007 260);
+
+  --color-primary: oklch(0.72 0.16 250);
+  --color-primary-hover: oklch(0.78 0.14 250);
+  --color-on-primary: #ffffff;
+
+  --color-foreground: oklch(0.93 0.005 260);
+  --color-muted-foreground: oklch(0.62 0.01 260);
+
+  --color-success: oklch(0.72 0.16 155);
+  --color-destructive: oklch(0.68 0.19 25);
+  --color-warning: oklch(0.78 0.16 80);
+
+  --color-outline: oklch(0.35 0.005 260);
+  --color-outline-variant: oklch(0.28 0.005 260);
+
+  --color-priority-high: oklch(0.68 0.19 25);
+  --color-priority-medium: oklch(0.78 0.16 80);
+  --color-priority-low: oklch(0.55 0.01 260);
+}
+
+/* Light Mode overrides */
+.light {
+  --color-background: oklch(0.98 0.002 260);
+  --color-surface: #ffffff;
+  --color-surface-container: oklch(0.95 0.004 260);
+  --color-surface-container-high: oklch(0.92 0.005 260);
+  --color-surface-elevated: oklch(0.88 0.006 260);
+
+  --color-primary: oklch(0.55 0.2 250);
+  --color-primary-hover: oklch(0.50 0.22 250);
+  --color-on-primary: #ffffff;
+
+  --color-foreground: oklch(0.15 0.015 260);
+  --color-muted-foreground: oklch(0.50 0.015 260);
+
+  --color-success: oklch(0.55 0.18 155);
+  --color-destructive: oklch(0.55 0.22 25);
+  --color-warning: oklch(0.70 0.18 80);
+
+  --color-outline: oklch(0.82 0.008 260);
+  --color-outline-variant: oklch(0.90 0.005 260);
+
+  --color-priority-high: oklch(0.55 0.22 25);
+  --color-priority-medium: oklch(0.70 0.18 80);
+  --color-priority-low: oklch(0.62 0.01 260);
+}
+
+/* ==========================================
+   Base styles
+   ========================================== */
+
+body {
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  font-size: 15px;
+  color: var(--color-foreground);
+  background-color: var(--color-background);
+}
+
+/* ==========================================
+   Glow effects
+   ========================================== */
+
+.glow-primary {
+  box-shadow: 0 0 16px 4px oklch(0.72 0.16 250 / 0.3);
+}
+.glow-primary-sm {
+  box-shadow: 0 0 8px 2px oklch(0.72 0.16 250 / 0.2);
+}
+
+.light .glow-primary {
+  box-shadow: 0 0 16px 4px oklch(0.55 0.2 250 / 0.25);
+}
+.light .glow-primary-sm {
+  box-shadow: 0 0 8px 2px oklch(0.55 0.2 250 / 0.15);
+}
+
+/* ==========================================
+   Scrollbar (thin, minimal)
+   ========================================== */
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-outline);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-muted-foreground);
+}

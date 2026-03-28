@@ -1,0 +1,459 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==========================================
+// AUTH & USERS
+// ==========================================
+
+model Family {
+  id        String   @id @default(uuid())
+  name      String   @db.VarChar(100)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  users              User[]
+  invites            Invite[]
+  taskLists          TaskList[]
+  sprints            Sprint[]
+  tags               Tag[]
+  tasks              Task[]
+  purchaseLists      PurchaseList[]
+  purchases          Purchase[]
+  ideas              Idea[]
+  recipes            Recipe[]
+  projects           Project[]
+  projectItems       ProjectItem[]
+  budgetCategories   BudgetCategory[]
+  budgetTransactions BudgetTransaction[]
+  budgetRecurring    BudgetRecurring[]
+  budgetPlanned      BudgetPlanned[]
+  notifications      Notification[]
+
+  @@map("families")
+}
+
+model User {
+  id               String    @id @default(uuid())
+  familyId         String    @map("family_id")
+  email            String    @unique @db.VarChar(255)
+  passwordHash     String    @map("password_hash") @db.VarChar(255)
+  firstName        String    @map("first_name") @db.VarChar(100)
+  lastName         String?   @map("last_name") @db.VarChar(100)
+  avatarUrl        String?   @map("avatar_url")
+  telegramUsername String?   @map("telegram_username") @db.VarChar(100)
+  phone            String?   @db.VarChar(20)
+  birthDate        DateTime? @map("birth_date") @db.Date
+  locale           String    @default("uk") @db.VarChar(5)
+  theme            String    @default("dark") @db.VarChar(10)
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  family             Family            @relation(fields: [familyId], references: [id])
+  invitesCreated     Invite[]          @relation("InviteCreatedBy")
+  invitesUsed        Invite[]          @relation("InviteUsedBy")
+  tasksCreated       Task[]            @relation("TaskCreatedBy")
+  tasksAssigned      Task[]            @relation("TaskAssignedTo")
+  taskComments       TaskComment[]
+  ideasCreated       Idea[]
+  recipesCreated     Recipe[]
+  projectsCreated    Project[]
+  budgetTransactions BudgetTransaction[]
+  notifications      Notification[]
+
+  @@index([familyId])
+  @@map("users")
+}
+
+model Invite {
+  id        String    @id @default(uuid())
+  familyId  String    @map("family_id")
+  code      String    @unique @db.VarChar(20)
+  createdBy String    @map("created_by")
+  usedBy    String?   @map("used_by")
+  expiresAt DateTime  @map("expires_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  family    Family @relation(fields: [familyId], references: [id])
+  creator   User   @relation("InviteCreatedBy", fields: [createdBy], references: [id])
+  usedByUser User? @relation("InviteUsedBy", fields: [usedBy], references: [id])
+
+  @@index([familyId])
+  @@map("invites")
+}
+
+// ==========================================
+// TASKS
+// ==========================================
+
+model TaskList {
+  id        String   @id @default(uuid())
+  familyId  String   @map("family_id")
+  name      String   @db.VarChar(100)
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  family Family @relation(fields: [familyId], references: [id])
+  tasks  Task[]
+
+  @@unique([familyId, name])
+  @@map("task_lists")
+}
+
+model Sprint {
+  id        String   @id @default(uuid())
+  familyId  String   @map("family_id")
+  name      String   @db.VarChar(100)
+  startDate DateTime @map("start_date") @db.Date
+  endDate   DateTime @map("end_date") @db.Date
+  isActive  Boolean  @default(false) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  family Family @relation(fields: [familyId], references: [id])
+  tasks  Task[]
+
+  @@map("sprints")
+}
+
+model Tag {
+  id        String   @id @default(uuid())
+  familyId  String   @map("family_id")
+  name      String   @db.VarChar(50)
+  color     String?  @db.VarChar(7)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  family   Family    @relation(fields: [familyId], references: [id])
+  tasks    Task[]    @relation("TaskTags")
+  ideas    Idea[]    @relation("IdeaTags")
+
+  @@unique([familyId, name])
+  @@map("tags")
+}
+
+model Task {
+  id                 String   @id @default(uuid())
+  familyId           String   @map("family_id")
+  listId             String?  @map("list_id")
+  sprintId           String?  @map("sprint_id")
+  createdById        String   @map("created_by")
+  assignedToId       String?  @map("assigned_to")
+  title              String   @db.VarChar(500)
+  description        String?
+  status             String   @default("new") @db.VarChar(20)
+  priority           String   @default("medium") @db.VarChar(10)
+  dueDate            DateTime? @map("due_date") @db.Date
+  dueTime            String?  @map("due_time") @db.VarChar(5)
+  isRecurring        Boolean  @default(false) @map("is_recurring")
+  recurrenceRule     Json?    @map("recurrence_rule")
+  recurrenceParentId String?  @map("recurrence_parent_id")
+  sortOrder          Int      @default(0) @map("sort_order")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  family          Family        @relation(fields: [familyId], references: [id])
+  list            TaskList?     @relation(fields: [listId], references: [id], onDelete: SetNull)
+  sprint          Sprint?       @relation(fields: [sprintId], references: [id], onDelete: SetNull)
+  createdBy       User          @relation("TaskCreatedBy", fields: [createdById], references: [id])
+  assignedTo      User?         @relation("TaskAssignedTo", fields: [assignedToId], references: [id])
+  recurrenceParent Task?        @relation("TaskRecurrence", fields: [recurrenceParentId], references: [id])
+  recurrenceChildren Task[]     @relation("TaskRecurrence")
+  subtasks        Subtask[]
+  comments        TaskComment[]
+  reminders       TaskReminder[]
+  tags            Tag[]         @relation("TaskTags")
+
+  @@index([familyId, status])
+  @@index([familyId, listId])
+  @@index([familyId, assignedToId])
+  @@index([familyId, sprintId])
+  @@map("tasks")
+}
+
+model Subtask {
+  id        String   @id @default(uuid())
+  taskId    String   @map("task_id")
+  title     String   @db.VarChar(500)
+  isDone    Boolean  @default(false) @map("is_done")
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@map("subtasks")
+}
+
+model TaskComment {
+  id        String   @id @default(uuid())
+  taskId    String   @map("task_id")
+  userId    String   @map("user_id")
+  content   String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([taskId, createdAt])
+  @@map("task_comments")
+}
+
+model TaskReminder {
+  id       String   @id @default(uuid())
+  taskId   String   @map("task_id")
+  remindAt DateTime @map("remind_at")
+  isSent   Boolean  @default(false) @map("is_sent")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([remindAt])
+  @@map("task_reminders")
+}
+
+// ==========================================
+// PURCHASES
+// ==========================================
+
+model PurchaseList {
+  id        String   @id @default(uuid())
+  familyId  String   @map("family_id")
+  name      String   @db.VarChar(100)
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  family    Family     @relation(fields: [familyId], references: [id])
+  purchases Purchase[]
+
+  @@unique([familyId, name])
+  @@map("purchase_lists")
+}
+
+model Purchase {
+  id                String   @id @default(uuid())
+  familyId          String   @map("family_id")
+  listId            String   @map("list_id")
+  name              String   @db.VarChar(300)
+  quantity          String?  @db.VarChar(50)
+  isBought          Boolean  @default(false) @map("is_bought")
+  addedFromRecipeId String?  @map("added_from_recipe_id")
+  sortOrder         Int      @default(0) @map("sort_order")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  family Family       @relation(fields: [familyId], references: [id])
+  list   PurchaseList @relation(fields: [listId], references: [id], onDelete: Cascade)
+  recipe Recipe?      @relation(fields: [addedFromRecipeId], references: [id], onDelete: SetNull)
+
+  @@index([familyId, listId])
+  @@map("purchases")
+}
+
+// ==========================================
+// IDEAS
+// ==========================================
+
+model Idea {
+  id              String   @id @default(uuid())
+  familyId        String   @map("family_id")
+  createdById     String   @map("created_by")
+  title           String   @db.VarChar(500)
+  description     String?
+  convertedToType String?  @map("converted_to_type") @db.VarChar(10)
+  convertedToId   String?  @map("converted_to_id")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  family    Family @relation(fields: [familyId], references: [id])
+  createdBy User   @relation(fields: [createdById], references: [id])
+  tags      Tag[]  @relation("IdeaTags")
+
+  @@index([familyId])
+  @@map("ideas")
+}
+
+// ==========================================
+// RECIPES
+// ==========================================
+
+model Recipe {
+  id           String   @id @default(uuid())
+  familyId     String   @map("family_id")
+  createdById  String   @map("created_by")
+  title        String   @db.VarChar(300)
+  description  String?
+  instructions String?
+  imageUrl     String?  @map("image_url")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  family      Family             @relation(fields: [familyId], references: [id])
+  createdBy   User               @relation(fields: [createdById], references: [id])
+  ingredients RecipeIngredient[]
+  purchases   Purchase[]
+
+  @@index([familyId])
+  @@map("recipes")
+}
+
+model RecipeIngredient {
+  id        String @id @default(uuid())
+  recipeId  String @map("recipe_id")
+  name      String @db.VarChar(200)
+  quantity  String? @db.VarChar(50)
+  sortOrder Int    @default(0) @map("sort_order")
+
+  recipe Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@map("recipe_ingredients")
+}
+
+// ==========================================
+// PROJECTS
+// ==========================================
+
+model Project {
+  id          String   @id @default(uuid())
+  familyId    String   @map("family_id")
+  createdById String   @map("created_by")
+  title       String   @db.VarChar(300)
+  description String?
+  status      String   @default("active") @db.VarChar(20)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  family    Family        @relation(fields: [familyId], references: [id])
+  createdBy User          @relation(fields: [createdById], references: [id])
+  items     ProjectItem[]
+
+  @@index([familyId])
+  @@map("projects")
+}
+
+model ProjectItem {
+  id            String   @id @default(uuid())
+  projectId     String   @map("project_id")
+  familyId      String   @map("family_id")
+  title         String   @db.VarChar(300)
+  status        String   @default("pending") @db.VarChar(20)
+  estimatedCost Decimal? @map("estimated_cost") @db.Decimal(12, 2)
+  currency      String   @default("UAH") @db.VarChar(3)
+  url           String?
+  sortOrder     Int      @default(0) @map("sort_order")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  family  Family  @relation(fields: [familyId], references: [id])
+
+  @@index([projectId])
+  @@map("project_items")
+}
+
+// ==========================================
+// BUDGET
+// ==========================================
+
+model BudgetCategory {
+  id        String   @id @default(uuid())
+  familyId  String   @map("family_id")
+  name      String   @db.VarChar(100)
+  type      String   @db.VarChar(10) // 'income' | 'expense'
+  icon      String?  @db.VarChar(50)
+  isDefault Boolean  @default(false) @map("is_default")
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  family       Family              @relation(fields: [familyId], references: [id])
+  transactions BudgetTransaction[]
+  recurring    BudgetRecurring[]
+  planned      BudgetPlanned[]
+
+  @@unique([familyId, name, type])
+  @@map("budget_categories")
+}
+
+model BudgetTransaction {
+  id          String   @id @default(uuid())
+  familyId    String   @map("family_id")
+  categoryId  String   @map("category_id")
+  userId      String   @map("user_id")
+  type        String   @db.VarChar(10) // 'income' | 'expense'
+  amount      Decimal  @db.Decimal(12, 2)
+  currency    String   @default("UAH") @db.VarChar(3)
+  description String?  @db.VarChar(300)
+  date        DateTime @db.Date
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  family   Family         @relation(fields: [familyId], references: [id])
+  category BudgetCategory @relation(fields: [categoryId], references: [id])
+  user     User           @relation(fields: [userId], references: [id])
+  planned  BudgetPlanned? @relation("PlannedTransaction")
+
+  @@index([familyId, date])
+  @@index([familyId, categoryId, date])
+  @@map("budget_transactions")
+}
+
+model BudgetRecurring {
+  id         String   @id @default(uuid())
+  familyId   String   @map("family_id")
+  categoryId String   @map("category_id")
+  title      String   @db.VarChar(200)
+  amount     Decimal  @db.Decimal(12, 2)
+  currency   String   @default("UAH") @db.VarChar(3)
+  period     String   @db.VarChar(10) // 'monthly' | 'quarterly' | 'yearly'
+  nextDate   DateTime @map("next_date") @db.Date
+  isActive   Boolean  @default(true) @map("is_active")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  family   Family         @relation(fields: [familyId], references: [id])
+  category BudgetCategory @relation(fields: [categoryId], references: [id])
+
+  @@index([familyId, nextDate])
+  @@map("budget_recurring")
+}
+
+model BudgetPlanned {
+  id            String    @id @default(uuid())
+  familyId      String    @map("family_id")
+  categoryId    String?   @map("category_id")
+  title         String    @db.VarChar(200)
+  amount        Decimal   @db.Decimal(12, 2)
+  currency      String    @default("UAH") @db.VarChar(3)
+  targetDate    DateTime? @map("target_date") @db.Date
+  isCompleted   Boolean   @default(false) @map("is_completed")
+  transactionId String?   @unique @map("transaction_id")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  family      Family             @relation(fields: [familyId], references: [id])
+  category    BudgetCategory?    @relation(fields: [categoryId], references: [id])
+  transaction BudgetTransaction? @relation("PlannedTransaction", fields: [transactionId], references: [id])
+
+  @@index([familyId])
+  @@map("budget_planned")
+}
+
+// ==========================================
+// NOTIFICATIONS
+// ==========================================
+
+model Notification {
+  id            String   @id @default(uuid())
+  userId        String   @map("user_id")
+  familyId      String   @map("family_id")
+  type          String   @db.VarChar(30)
+  title         String   @db.VarChar(300)
+  body          String?
+  referenceType String?  @map("reference_type") @db.VarChar(20)
+  referenceId   String?  @map("reference_id")
+  isRead        Boolean  @default(false) @map("is_read")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  user   User   @relation(fields: [userId], references: [id])
+  family Family @relation(fields: [familyId], references: [id])
+
+  @@index([userId, isRead, createdAt])
+  @@map("notifications")
+}
