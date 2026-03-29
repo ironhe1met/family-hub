@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { format, isPast, isToday, isTomorrow, differenceInDays } from 'date-fns'
+import { format, isPast, isToday, isTomorrow } from 'date-fns'
 import { uk } from 'date-fns/locale'
-import { Clock, MessageSquare, CheckSquare, MoreVertical, Pencil, Trash2 } from 'lucide-react'
+import { Clock, MoreVertical, Pencil, Trash2 } from 'lucide-react'
 import { createPortal } from 'react-dom'
 import { cn } from '@/lib/utils'
 import type { Task } from '../services/task-service'
@@ -17,10 +17,10 @@ const priorityBorder = {
 function getDateColor(dueDate: string, status: string) {
   if (status === 'done' || status === 'archived') return 'text-muted-foreground/70'
   const date = new Date(dueDate)
-  if (isPast(date) && !isToday(date)) return 'text-destructive' // overdue — red
-  if (isToday(date)) return 'text-warning' // today — orange
-  if (isTomorrow(date)) return 'text-warning/70' // tomorrow — soft orange
-  return 'text-success/70' // future — green
+  if (isPast(date) && !isToday(date)) return 'text-destructive'
+  if (isToday(date)) return 'text-warning'
+  if (isTomorrow(date)) return 'text-warning/70'
+  return 'text-success/70'
 }
 
 interface TaskCardProps {
@@ -57,23 +57,22 @@ export function TaskCard({ task, onToggle, onEdit, onDelete }: TaskCardProps) {
   }, [menuOpen])
 
   const dateColor = task.dueDate ? getDateColor(task.dueDate, task.status) : ''
-  const hasMeta = task.dueDate || task.subtaskCount > 0 || task.commentCount > 0 || task.assignedTo
 
   return (
     <div
       onDoubleClick={() => onEdit(task)}
       className={cn(
-        'group rounded-md border border-outline-variant/20 border-l-[3px] bg-surface transition-all hover:border-outline-variant/40 hover:shadow-sm cursor-pointer',
+        'group rounded-md border border-outline-variant/20 border-l-[3px] bg-surface transition-colors hover:bg-surface-container/50 cursor-pointer',
         priorityBorder[task.priority],
         isDone && 'opacity-50'
       )}
     >
-      <div className="flex gap-2.5 px-3 py-2.5">
-        {/* Checkbox — self-center */}
+      <div className="flex items-center gap-2.5 px-3 py-2.5">
+        {/* Checkbox */}
         <button
           onClick={(e) => { e.stopPropagation(); onToggle(task.id) }}
           className={cn(
-            'mt-0.5 flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[3px] border-2 transition-colors',
+            'flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[3px] border-2 transition-colors',
             isDone ? 'border-success bg-success text-white' : 'border-outline/50 hover:border-primary'
           )}
         >
@@ -86,54 +85,26 @@ export function TaskCard({ task, onToggle, onEdit, onDelete }: TaskCardProps) {
 
         {/* Content */}
         <div className="min-w-0 flex-1">
-          {/* Title — wraps, no truncation */}
+          {/* Title */}
           <span className={cn('text-[13px] font-medium leading-snug', isDone && 'line-through text-muted-foreground')}>
             {task.title}
           </span>
 
-          {/* Meta row */}
-          {hasMeta && (
-            <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-muted-foreground/70">
-              {/* Date + time */}
-              {task.dueDate && (
-                <span className={cn('flex items-center gap-1', dateColor)}>
-                  <Clock className="size-2.5" />
-                  <span className="font-medium">{format(new Date(task.dueDate), 'd MMM yyyy', { locale: uk })}</span>
-                  {task.dueTime && <span className="opacity-50">{task.dueTime}</span>}
-                </span>
-              )}
-
-              {/* Subtasks */}
-              {task.subtaskCount > 0 && (
-                <span className="flex items-center gap-0.5">
-                  <CheckSquare className="size-2.5 opacity-60" />
-                  {task.subtaskDoneCount}/{task.subtaskCount}
-                </span>
-              )}
-
-              {/* Comments */}
-              {task.commentCount > 0 && (
-                <span className="flex items-center gap-0.5">
-                  <MessageSquare className="size-2.5 opacity-60" />
-                  {task.commentCount}
-                </span>
-              )}
-
-              {/* Assignee — pill with background */}
-              {task.assignedTo && (
-                <span className="ml-auto rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
-                  {task.assignedTo.firstName}
-                </span>
-              )}
+          {/* Date + time */}
+          {task.dueDate && (
+            <div className={cn('mt-1.5 flex items-center gap-1 text-[10px]', dateColor)}>
+              <Clock className="size-2.5" />
+              <span className="font-medium">{format(new Date(task.dueDate), 'd MMM yyyy', { locale: uk })}</span>
+              {task.dueTime && <span className="opacity-50">{task.dueTime}</span>}
             </div>
           )}
         </div>
 
-        {/* Three dots — always visible, pushed right */}
+        {/* Three dots */}
         <button
           ref={menuBtnRef}
           onClick={(e) => { e.stopPropagation(); setMenuOpen(!menuOpen) }}
-          className="mt-0.5 ml-1 flex h-6 w-6 shrink-0 items-center justify-center rounded text-muted-foreground/30 transition-colors hover:bg-surface-container hover:text-muted-foreground"
+          className="ml-1 flex h-6 w-6 shrink-0 items-center justify-center rounded text-muted-foreground/30 transition-colors hover:bg-surface-container hover:text-muted-foreground"
         >
           <MoreVertical className="size-4" />
         </button>
