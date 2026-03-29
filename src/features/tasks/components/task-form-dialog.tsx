@@ -162,7 +162,7 @@ export function TaskFormDialog({ task, taskLists, familyMembers, onSave, onClose
                 onChange={(e) => setAssignedTo(e.target.value)}
                 className="h-10 flex-1 rounded-md border border-outline/30 bg-surface-container-high px-3 text-sm text-foreground focus:border-primary focus:outline-none"
               >
-                <option value="">Загальна (всі)</option>
+                <option value="">Не призначена</option>
                 {familyMembers.map((m) => (
                   <option key={m.id} value={m.id}>{m.firstName}</option>
                 ))}

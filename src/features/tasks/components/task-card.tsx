@@ -87,12 +87,15 @@ export function TaskCard({ task, onToggle, onEdit, onDelete, compact }: TaskCard
             )}
 
             {/* Assignee */}
-            {task.assignedTo && (
+            {task.assignedTo ? (
               <span className="flex items-center gap-1">
-                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary/20 text-[10px] font-medium text-primary">
+                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary/20 text-[10px] font-bold text-primary">
                   {task.assignedTo.firstName[0]}
                 </span>
+                <span>{task.assignedTo.firstName}</span>
               </span>
+            ) : (
+              <span className="italic opacity-50">Не призначена</span>
             )}
           </div>
 

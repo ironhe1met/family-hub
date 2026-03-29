@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { LayoutGrid, List, ListChecks } from 'lucide-react'
+import { LayoutGrid, List, ListChecks, Users } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useTasks } from '@/features/tasks/hooks/use-tasks'
 import { KanbanBoard } from '@/features/tasks/components/kanban-board'
@@ -28,14 +28,15 @@ export default function TasksPage() {
       .then((d) => setFamilyMembers(d.members || []))
       .catch(() => {})
   }, [])
+
   const [view, setView] = useState<ViewMode>('kanban')
   const [editingTask, setEditingTask] = useState<Task | null>(null)
   const [showCreate, setShowCreate] = useState(false)
-  const [filterListId, setFilterListId] = useState<string>('')
+  const [filterMemberId, setFilterMemberId] = useState<string>('')
 
-  // Filter tasks by list
-  const filteredTasks = filterListId
-    ? tasks.filter((t) => t.listId === filterListId)
+  // Filter tasks by assigned member
+  const filteredTasks = filterMemberId
+    ? tasks.filter((t) => t.assignedTo?.id === filterMemberId)
     : tasks
 
   async function handleSave(data: Record<string, unknown>) {
@@ -71,36 +72,8 @@ export default function TasksPage() {
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold">Задачі</h1>
 
-        <div className="flex items-center gap-3">
-          {/* List filter */}
-          {taskLists.length > 0 && (
-            <div className="flex items-center gap-1 overflow-x-auto">
-              <button
-                onClick={() => setFilterListId('')}
-                className={cn(
-                  'whitespace-nowrap rounded-md px-2.5 py-1 text-xs font-medium transition-colors',
-                  !filterListId ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:bg-surface-container'
-                )}
-              >
-                Всі
-              </button>
-              {taskLists.map((list) => (
-                <button
-                  key={list.id}
-                  onClick={() => setFilterListId(list.id)}
-                  className={cn(
-                    'whitespace-nowrap rounded-md px-2.5 py-1 text-xs font-medium transition-colors',
-                    filterListId === list.id ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:bg-surface-container'
-                  )}
-                >
-                  {list.name}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* View toggle */}
-          <div className="flex h-9 rounded-md border border-outline-variant/30">
+        {/* View toggle */}
+        <div className="flex h-9 rounded-md border border-outline-variant/30">
           <button
             onClick={() => setView('kanban')}
             className={cn(
@@ -122,7 +95,39 @@ export default function TasksPage() {
             Список
           </button>
         </div>
-        </div>
+      </div>
+
+      {/* People filter tabs */}
+      <div className="mb-4 flex items-center gap-1 overflow-x-auto">
+        <button
+          onClick={() => setFilterMemberId('')}
+          className={cn(
+            'flex items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
+            !filterMemberId ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:bg-surface-container'
+          )}
+        >
+          <Users className="size-4" />
+          Всі задачі
+        </button>
+        {familyMembers.map((member) => {
+          const count = tasks.filter((t) => t.assignedTo?.id === member.id).length
+          return (
+            <button
+              key={member.id}
+              onClick={() => setFilterMemberId(member.id)}
+              className={cn(
+                'flex items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
+                filterMemberId === member.id ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:bg-surface-container'
+              )}
+            >
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/20 text-[10px] font-bold text-primary">
+                {member.firstName[0]}
+              </span>
+              {member.firstName}
+              {count > 0 && <span className="text-xs opacity-60">{count}</span>}
+            </button>
+          )
+        })}
       </div>
 
       {/* Empty state */}
@@ -137,6 +142,13 @@ export default function TasksPage() {
           >
             Створити задачу
           </button>
+        </div>
+      )}
+
+      {/* Filtered empty */}
+      {filteredTasks.length === 0 && tasks.length > 0 && (
+        <div className="py-12 text-center text-sm text-muted-foreground">
+          Немає задач для цього фільтра
         </div>
       )}
 
@@ -160,7 +172,7 @@ export default function TasksPage() {
         />
       )}
 
-      {/* FAB — create task (always visible) */}
+      {/* FAB — create task */}
       <button
         onClick={() => setShowCreate(true)}
         className="fixed bottom-6 right-6 z-30 flex h-14 w-14 items-center justify-center rounded-xl bg-primary text-on-primary shadow-lg glow-primary transition-transform hover:scale-105 active:scale-90"
