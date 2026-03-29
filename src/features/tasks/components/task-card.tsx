@@ -86,22 +86,12 @@ export function TaskCard({ task, onToggle, onEdit, onDelete }: TaskCardProps) {
 
           {/* Meta — compact single row */}
           <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-            {/* Assignee chip */}
-            {task.assignedTo ? (
-              <span className="flex items-center gap-0.5 rounded-full bg-primary/10 px-1.5 py-px text-primary">
-                <span className="text-[9px] font-bold">{task.assignedTo.firstName[0]}</span>
-                {task.assignedTo.firstName}
-              </span>
-            ) : (
-              <span className="rounded-full bg-surface-container px-1.5 py-px opacity-50">—</span>
-            )}
-
-            {/* Date + time */}
+            {/* Date + time — left side, smaller font */}
             {task.dueDate && (
-              <span className={cn('flex items-center gap-0.5', isOverdue && 'text-destructive')}>
+              <span className={cn('flex items-center gap-1 text-[10px]', isOverdue && 'text-destructive')}>
                 <Clock className="size-2.5" />
-                {format(new Date(task.dueDate), 'd.MM', { locale: uk })}
-                {task.dueTime && <span>{task.dueTime}</span>}
+                <span className="font-medium">{format(new Date(task.dueDate), 'd MMM yyyy', { locale: uk })}</span>
+                {task.dueTime && <span className="opacity-50">{task.dueTime}</span>}
               </span>
             )}
 
@@ -118,6 +108,14 @@ export function TaskCard({ task, onToggle, onEdit, onDelete }: TaskCardProps) {
               <span className="flex items-center gap-0.5">
                 <MessageSquare className="size-2.5" />
                 {task.commentCount}
+              </span>
+            )}
+
+            {/* Assignee — only if assigned */}
+            {task.assignedTo && (
+              <span className="ml-auto flex items-center gap-0.5 rounded-full bg-primary/10 px-1.5 py-px text-primary">
+                <span className="text-[9px] font-bold">{task.assignedTo.firstName[0]}</span>
+                {task.assignedTo.firstName}
               </span>
             )}
           </div>
