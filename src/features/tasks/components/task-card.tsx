@@ -9,9 +9,9 @@ import { cn } from '@/lib/utils'
 import type { Task } from '../services/task-service'
 
 const priorityColors = {
-  high: 'bg-priority-high',
-  medium: 'bg-priority-medium',
-  low: 'bg-priority-low',
+  high: 'border-l-priority-high',
+  medium: 'border-l-priority-medium',
+  low: 'border-l-priority-low',
 }
 
 interface TaskCardProps {
@@ -30,14 +30,12 @@ export function TaskCard({ task, onToggle, onEdit, onDelete }: TaskCardProps) {
   const menuRef = useRef<HTMLDivElement>(null)
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 })
 
-  // Position menu via portal (no clipping)
   useEffect(() => {
     if (!menuOpen || !menuBtnRef.current) return
     const rect = menuBtnRef.current.getBoundingClientRect()
-    setMenuPos({ top: rect.bottom + 4, left: rect.right - 176 }) // 176 = w-44
+    setMenuPos({ top: rect.bottom + 4, left: rect.right - 176 })
   }, [menuOpen])
 
-  // Close on click outside
   useEffect(() => {
     if (!menuOpen) return
     function handleClick(e: MouseEvent) {
@@ -50,21 +48,24 @@ export function TaskCard({ task, onToggle, onEdit, onDelete }: TaskCardProps) {
     return () => document.removeEventListener('mousedown', handleClick)
   }, [menuOpen])
 
+  const hasMeta = task.dueDate || task.subtaskCount > 0 || task.commentCount > 0 || task.assignedTo
+
   return (
     <div
       onDoubleClick={() => onEdit(task)}
       className={cn(
-        'group relative rounded-md border border-outline-variant/30 bg-surface px-3 py-2 transition-colors hover:border-primary/30 cursor-pointer',
-        isDone && 'opacity-60'
+        'group rounded-md border border-outline-variant/20 border-l-[3px] bg-surface transition-all hover:border-outline-variant/40 hover:shadow-sm cursor-pointer',
+        priorityColors[task.priority],
+        isDone && 'opacity-50'
       )}
     >
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2.5 px-3 py-2.5">
         {/* Checkbox */}
         <button
           onClick={(e) => { e.stopPropagation(); onToggle(task.id) }}
           className={cn(
             'flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[3px] border-2 transition-colors',
-            isDone ? 'border-success bg-success text-white' : 'border-outline hover:border-primary'
+            isDone ? 'border-success bg-success text-white' : 'border-outline/50 hover:border-primary'
           )}
         >
           {isDone && (
@@ -74,68 +75,66 @@ export function TaskCard({ task, onToggle, onEdit, onDelete }: TaskCardProps) {
           )}
         </button>
 
-        {/* Content — single compact row with overflow */}
+        {/* Content */}
         <div className="min-w-0 flex-1">
-          {/* Title + priority */}
-          <div className="flex items-center gap-1.5">
-            <span className={cn('size-1.5 shrink-0 rounded-full', priorityColors[task.priority])} />
-            <span className={cn('truncate text-sm font-medium leading-tight', isDone && 'line-through text-muted-foreground')}>
-              {task.title}
-            </span>
-          </div>
+          {/* Title */}
+          <span className={cn('block truncate text-[13px] font-medium leading-tight', isDone && 'line-through text-muted-foreground')}>
+            {task.title}
+          </span>
 
-          {/* Meta — compact single row */}
-          <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-            {/* Date + time — left side, smaller font */}
-            {task.dueDate && (
-              <span className={cn('flex items-center gap-1 text-[10px]', isOverdue && 'text-destructive')}>
-                <Clock className="size-2.5" />
-                <span className="font-medium">{format(new Date(task.dueDate), 'd MMM yyyy', { locale: uk })}</span>
-                {task.dueTime && <span className="opacity-50">{task.dueTime}</span>}
-              </span>
-            )}
+          {/* Meta row — with gap from title */}
+          {hasMeta && (
+            <div className="mt-1.5 flex items-center gap-2 text-[10px] text-muted-foreground/70">
+              {/* Date + time */}
+              {task.dueDate && (
+                <span className={cn('flex items-center gap-1', isOverdue && 'text-destructive/80')}>
+                  <Clock className="size-2.5 opacity-60" />
+                  <span className="font-medium">{format(new Date(task.dueDate), 'd MMM yyyy', { locale: uk })}</span>
+                  {task.dueTime && <span className="opacity-50">{task.dueTime}</span>}
+                </span>
+              )}
 
-            {/* Subtasks */}
-            {task.subtaskCount > 0 && (
-              <span className="flex items-center gap-0.5">
-                <CheckSquare className="size-2.5" />
-                {task.subtaskDoneCount}/{task.subtaskCount}
-              </span>
-            )}
+              {/* Subtasks */}
+              {task.subtaskCount > 0 && (
+                <span className="flex items-center gap-0.5">
+                  <CheckSquare className="size-2.5 opacity-60" />
+                  {task.subtaskDoneCount}/{task.subtaskCount}
+                </span>
+              )}
 
-            {/* Comments */}
-            {task.commentCount > 0 && (
-              <span className="flex items-center gap-0.5">
-                <MessageSquare className="size-2.5" />
-                {task.commentCount}
-              </span>
-            )}
+              {/* Comments */}
+              {task.commentCount > 0 && (
+                <span className="flex items-center gap-0.5">
+                  <MessageSquare className="size-2.5 opacity-60" />
+                  {task.commentCount}
+                </span>
+              )}
 
-            {/* Assignee — only if assigned */}
-            {task.assignedTo && (
-              <span className="ml-auto flex items-center gap-0.5 rounded-full bg-primary/10 px-1.5 py-px text-primary">
-                <span className="text-[9px] font-bold">{task.assignedTo.firstName[0]}</span>
-                {task.assignedTo.firstName}
-              </span>
-            )}
-          </div>
+              {/* Assignee name — right side, no avatar circle */}
+              {task.assignedTo && (
+                <span className="ml-auto text-[10px] font-medium text-primary/70">
+                  {task.assignedTo.firstName}
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* Three dots */}
+        {/* Three dots — always area, visible on hover, pushed right */}
         <button
           ref={menuBtnRef}
           onClick={(e) => { e.stopPropagation(); setMenuOpen(!menuOpen) }}
-          className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-muted-foreground opacity-0 transition-opacity hover:bg-surface-container group-hover:opacity-100"
+          className="ml-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground/40 opacity-0 transition-all hover:bg-surface-container hover:text-muted-foreground group-hover:opacity-100"
         >
-          <MoreVertical className="size-3.5" />
+          <MoreVertical className="size-4" />
         </button>
       </div>
 
-      {/* Dropdown menu — rendered via portal to avoid clipping */}
+      {/* Dropdown via portal */}
       {menuOpen && typeof document !== 'undefined' && createPortal(
         <div
           ref={menuRef}
-          className="fixed z-50 w-44 rounded-md border border-outline-variant/30 bg-surface-container py-1 shadow-xl"
+          className="fixed z-50 w-44 rounded-lg border border-outline-variant/30 bg-surface-container py-1 shadow-2xl"
           style={{ top: menuPos.top, left: menuPos.left }}
         >
           <button
