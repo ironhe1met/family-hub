@@ -3,7 +3,8 @@
 import { useState, useRef, useEffect } from 'react'
 import { format, isPast, isToday } from 'date-fns'
 import { uk } from 'date-fns/locale'
-import { Calendar, MessageSquare, CheckSquare, MoreVertical, Pencil, Trash2 } from 'lucide-react'
+import { Clock, MessageSquare, CheckSquare, MoreVertical, Pencil, Trash2 } from 'lucide-react'
+import { createPortal } from 'react-dom'
 import { cn } from '@/lib/utils'
 import type { Task } from '../services/task-service'
 
@@ -21,16 +22,27 @@ interface TaskCardProps {
   compact?: boolean
 }
 
-export function TaskCard({ task, onToggle, onEdit, onDelete, compact }: TaskCardProps) {
+export function TaskCard({ task, onToggle, onEdit, onDelete }: TaskCardProps) {
   const isOverdue = task.dueDate && isPast(new Date(task.dueDate)) && !isToday(new Date(task.dueDate)) && task.status !== 'done'
   const isDone = task.status === 'done' || task.status === 'archived'
   const [menuOpen, setMenuOpen] = useState(false)
+  const menuBtnRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
+  const [menuPos, setMenuPos] = useState({ top: 0, left: 0 })
 
+  // Position menu via portal (no clipping)
+  useEffect(() => {
+    if (!menuOpen || !menuBtnRef.current) return
+    const rect = menuBtnRef.current.getBoundingClientRect()
+    setMenuPos({ top: rect.bottom + 4, left: rect.right - 176 }) // 176 = w-44
+  }, [menuOpen])
+
+  // Close on click outside
   useEffect(() => {
     if (!menuOpen) return
     function handleClick(e: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node) &&
+          menuBtnRef.current && !menuBtnRef.current.contains(e.target as Node)) {
         setMenuOpen(false)
       }
     }
@@ -42,123 +54,109 @@ export function TaskCard({ task, onToggle, onEdit, onDelete, compact }: TaskCard
     <div
       onDoubleClick={() => onEdit(task)}
       className={cn(
-        'group relative rounded-md border border-outline-variant/30 bg-surface px-3 py-2.5 transition-colors hover:border-primary/30 cursor-pointer',
+        'group relative rounded-md border border-outline-variant/30 bg-surface px-3 py-2 transition-colors hover:border-primary/30 cursor-pointer',
         isDone && 'opacity-60'
       )}
     >
-      {/* Main row: checkbox — content — menu (all vertically centered) */}
       <div className="flex items-center gap-2">
-        {/* Checkbox — centered */}
+        {/* Checkbox */}
         <button
           onClick={(e) => { e.stopPropagation(); onToggle(task.id) }}
           className={cn(
-            'flex h-5 w-5 shrink-0 items-center justify-center rounded-[3px] border-2 transition-colors',
+            'flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[3px] border-2 transition-colors',
             isDone ? 'border-success bg-success text-white' : 'border-outline hover:border-primary'
           )}
         >
           {isDone && (
-            <svg className="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+            <svg className="size-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
           )}
         </button>
 
-        {/* Content */}
+        {/* Content — single compact row with overflow */}
         <div className="min-w-0 flex-1">
-          {/* Title row */}
+          {/* Title + priority */}
           <div className="flex items-center gap-1.5">
-            <span className={cn('size-2 shrink-0 rounded-full', priorityColors[task.priority])} />
-            <span className={cn('text-sm font-medium leading-tight', isDone && 'line-through text-muted-foreground')}>
+            <span className={cn('size-1.5 shrink-0 rounded-full', priorityColors[task.priority])} />
+            <span className={cn('truncate text-sm font-medium leading-tight', isDone && 'line-through text-muted-foreground')}>
               {task.title}
             </span>
           </div>
 
-          {/* Info row — date, subtasks, comments */}
-          {(task.dueDate || task.subtaskCount > 0 || task.commentCount > 0) && (
-            <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-              {task.dueDate && (
-                <span className={cn('flex items-center gap-1', isOverdue && 'text-destructive font-medium')}>
-                  <Calendar className="size-3" />
-                  {format(new Date(task.dueDate), 'd MMM', { locale: uk })}
-                  {task.dueTime && <span className="opacity-70">{task.dueTime}</span>}
-                </span>
-              )}
-              {task.subtaskCount > 0 && (
-                <span className="flex items-center gap-1">
-                  <CheckSquare className="size-3" />
-                  {task.subtaskDoneCount}/{task.subtaskCount}
-                </span>
-              )}
-              {task.commentCount > 0 && (
-                <span className="flex items-center gap-1">
-                  <MessageSquare className="size-3" />
-                  {task.commentCount}
-                </span>
-              )}
-            </div>
-          )}
-
-          {/* Assignee row — separate line */}
-          <div className="mt-1.5">
+          {/* Meta — compact single row */}
+          <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            {/* Assignee chip */}
             {task.assignedTo ? (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
-                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary/20 text-[9px] font-bold">
-                  {task.assignedTo.firstName[0]}
-                </span>
+              <span className="flex items-center gap-0.5 rounded-full bg-primary/10 px-1.5 py-px text-primary">
+                <span className="text-[9px] font-bold">{task.assignedTo.firstName[0]}</span>
                 {task.assignedTo.firstName}
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1 rounded-full bg-surface-container px-2 py-0.5 text-[11px] text-muted-foreground/60">
-                Не призначена
+              <span className="rounded-full bg-surface-container px-1.5 py-px opacity-50">—</span>
+            )}
+
+            {/* Date + time */}
+            {task.dueDate && (
+              <span className={cn('flex items-center gap-0.5', isOverdue && 'text-destructive')}>
+                <Clock className="size-2.5" />
+                {format(new Date(task.dueDate), 'd.MM', { locale: uk })}
+                {task.dueTime && <span>{task.dueTime}</span>}
+              </span>
+            )}
+
+            {/* Subtasks */}
+            {task.subtaskCount > 0 && (
+              <span className="flex items-center gap-0.5">
+                <CheckSquare className="size-2.5" />
+                {task.subtaskDoneCount}/{task.subtaskCount}
+              </span>
+            )}
+
+            {/* Comments */}
+            {task.commentCount > 0 && (
+              <span className="flex items-center gap-0.5">
+                <MessageSquare className="size-2.5" />
+                {task.commentCount}
               </span>
             )}
           </div>
-
-          {/* Tags */}
-          {!compact && task.tags.length > 0 && (
-            <div className="mt-1.5 flex flex-wrap gap-1">
-              {task.tags.map((tag) => (
-                <span
-                  key={tag.id}
-                  className="rounded-sm px-1.5 py-0.5 text-[10px] font-medium"
-                  style={{ backgroundColor: `${tag.color}20`, color: tag.color || undefined }}
-                >
-                  {tag.name}
-                </span>
-              ))}
-            </div>
-          )}
         </div>
 
-        {/* Three dots — centered */}
-        <div ref={menuRef} className="relative shrink-0 self-center">
-          <button
-            onClick={(e) => { e.stopPropagation(); setMenuOpen(!menuOpen) }}
-            className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-surface-container group-hover:opacity-100"
-          >
-            <MoreVertical className="size-4" />
-          </button>
-
-          {menuOpen && (
-            <div className="absolute right-0 top-full z-30 mt-1 w-44 rounded-md border border-outline-variant/30 bg-surface-container py-1 shadow-xl">
-              <button
-                onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onEdit(task) }}
-                className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-foreground hover:bg-surface-container-high"
-              >
-                <Pencil className="size-4 text-muted-foreground" />
-                Редагувати
-              </button>
-              <button
-                onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onDelete(task.id) }}
-                className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-destructive hover:bg-destructive/10"
-              >
-                <Trash2 className="size-4" />
-                Видалити
-              </button>
-            </div>
-          )}
-        </div>
+        {/* Three dots */}
+        <button
+          ref={menuBtnRef}
+          onClick={(e) => { e.stopPropagation(); setMenuOpen(!menuOpen) }}
+          className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-muted-foreground opacity-0 transition-opacity hover:bg-surface-container group-hover:opacity-100"
+        >
+          <MoreVertical className="size-3.5" />
+        </button>
       </div>
+
+      {/* Dropdown menu — rendered via portal to avoid clipping */}
+      {menuOpen && typeof document !== 'undefined' && createPortal(
+        <div
+          ref={menuRef}
+          className="fixed z-50 w-44 rounded-md border border-outline-variant/30 bg-surface-container py-1 shadow-xl"
+          style={{ top: menuPos.top, left: menuPos.left }}
+        >
+          <button
+            onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onEdit(task) }}
+            className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-foreground hover:bg-surface-container-high"
+          >
+            <Pencil className="size-4 text-muted-foreground" />
+            Редагувати
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onDelete(task.id) }}
+            className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-destructive hover:bg-destructive/10"
+          >
+            <Trash2 className="size-4" />
+            Видалити
+          </button>
+        </div>,
+        document.body
+      )}
     </div>
   )
 }
