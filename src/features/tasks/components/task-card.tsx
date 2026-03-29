@@ -1,8 +1,9 @@
 'use client'
 
+import { useState, useRef, useEffect } from 'react'
 import { format, isPast, isToday } from 'date-fns'
 import { uk } from 'date-fns/locale'
-import { Calendar, MessageSquare, CheckSquare, Pencil, Trash2 } from 'lucide-react'
+import { Calendar, MessageSquare, CheckSquare, MoreVertical, Pencil, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Task } from '../services/task-service'
 
@@ -23,19 +24,33 @@ interface TaskCardProps {
 export function TaskCard({ task, onToggle, onEdit, onDelete, compact }: TaskCardProps) {
   const isOverdue = task.dueDate && isPast(new Date(task.dueDate)) && !isToday(new Date(task.dueDate)) && task.status !== 'done'
   const isDone = task.status === 'done' || task.status === 'archived'
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  // Close menu on click outside
+  useEffect(() => {
+    if (!menuOpen) return
+    function handleClick(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [menuOpen])
 
   return (
     <div
       onDoubleClick={() => onEdit(task)}
       className={cn(
-        'group rounded-md border border-outline-variant/30 bg-surface px-3 py-2.5 transition-colors hover:border-primary/30 cursor-pointer',
+        'group relative rounded-md border border-outline-variant/30 bg-surface px-3 py-2.5 transition-colors hover:border-primary/30 cursor-pointer',
         isDone && 'opacity-60'
       )}
     >
       <div className="flex items-start gap-2">
         {/* Checkbox */}
         <button
-          onClick={() => onToggle(task.id)}
+          onClick={(e) => { e.stopPropagation(); onToggle(task.id) }}
           className={cn(
             'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-[3px] border-2 transition-colors',
             isDone ? 'border-success bg-success text-white' : 'border-outline hover:border-primary'
@@ -115,14 +130,33 @@ export function TaskCard({ task, onToggle, onEdit, onDelete, compact }: TaskCard
           )}
         </div>
 
-        {/* Actions */}
-        <div className="flex shrink-0 gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
-          <button onClick={() => onEdit(task)} className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-surface-container">
-            <Pencil className="size-3.5" />
+        {/* Three dots menu */}
+        <div ref={menuRef} className="relative shrink-0">
+          <button
+            onClick={(e) => { e.stopPropagation(); setMenuOpen(!menuOpen) }}
+            className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-surface-container group-hover:opacity-100"
+          >
+            <MoreVertical className="size-4" />
           </button>
-          <button onClick={() => onDelete(task.id)} className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
-            <Trash2 className="size-3.5" />
-          </button>
+
+          {menuOpen && (
+            <div className="absolute right-0 top-8 z-20 w-40 rounded-md border border-outline-variant/30 bg-surface-container py-1 shadow-lg">
+              <button
+                onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onEdit(task) }}
+                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-surface-container-high"
+              >
+                <Pencil className="size-3.5" />
+                Редагувати
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onDelete(task.id) }}
+                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-destructive hover:bg-destructive/10"
+              >
+                <Trash2 className="size-3.5" />
+                Видалити
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
