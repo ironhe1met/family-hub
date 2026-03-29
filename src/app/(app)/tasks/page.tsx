@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { LayoutGrid, List, ListChecks } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useTasks } from '@/features/tasks/hooks/use-tasks'
@@ -11,8 +11,23 @@ import type { Task } from '@/features/tasks/services/task-service'
 
 type ViewMode = 'kanban' | 'list'
 
+interface FamilyMember {
+  id: string
+  firstName: string
+  lastName: string | null
+  avatarUrl: string | null
+}
+
 export default function TasksPage() {
-  const { tasks, taskLists, loading, createTask, updateTask, deleteTask, toggleStatus, changeStatus } = useTasks()
+  const { tasks, taskLists, loading, createTask, updateTask, deleteTask, toggleStatus, changeStatus, fetchTasks } = useTasks()
+  const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([])
+
+  useEffect(() => {
+    fetch('/api/v1/family/members')
+      .then((r) => r.json())
+      .then((d) => setFamilyMembers(d.members || []))
+      .catch(() => {})
+  }, [])
   const [view, setView] = useState<ViewMode>('kanban')
   const [editingTask, setEditingTask] = useState<Task | null>(null)
   const [showCreate, setShowCreate] = useState(false)
@@ -125,7 +140,8 @@ export default function TasksPage() {
         <TaskFormDialog
           task={editingTask}
           taskLists={taskLists}
-          onSave={handleSave}
+          familyMembers={familyMembers}
+          onSave={async (data) => { await handleSave(data); await fetchTasks() }}
           onClose={() => { setShowCreate(false); setEditingTask(null) }}
         />
       )}

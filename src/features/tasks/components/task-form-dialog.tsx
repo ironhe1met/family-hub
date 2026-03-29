@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { X, Calendar as CalendarIcon, User, List, Flag } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { X, Calendar as CalendarIcon, User, List, Flag, Plus } from 'lucide-react'
+import { taskListService } from '../services/task-service'
 import { cn } from '@/lib/utils'
 import type { Task, TaskList } from '../services/task-service'
 
@@ -36,6 +37,20 @@ export function TaskFormDialog({ task, taskLists, familyMembers, onSave, onClose
   const [listId, setListId] = useState(task?.listId || '')
   const [assignedTo, setAssignedTo] = useState(task?.assignedTo?.id || '')
   const [saving, setSaving] = useState(false)
+  const [localLists, setLocalLists] = useState(taskLists)
+  const [showNewList, setShowNewList] = useState(false)
+  const [newListName, setNewListName] = useState('')
+
+  async function handleCreateList() {
+    if (!newListName.trim()) return
+    try {
+      const list = await taskListService.create(newListName.trim())
+      setLocalLists((prev) => [...prev, { ...list, taskCount: 0 }])
+      setListId(list.id)
+      setNewListName('')
+      setShowNewList(false)
+    } catch {}
+  }
 
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
@@ -90,13 +105,17 @@ export function TaskFormDialog({ task, taskLists, familyMembers, onSave, onClose
             className="h-12 w-full border-b-2 border-outline-variant/30 bg-transparent px-0 text-xl font-medium text-foreground placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none"
           />
 
-          {/* Description */}
+          {/* Description — auto-resize */}
           <textarea
             value={description}
-            onChange={(e) => setDescription(e.target.value)}
+            onChange={(e) => {
+              setDescription(e.target.value)
+              e.target.style.height = 'auto'
+              e.target.style.height = e.target.scrollHeight + 'px'
+            }}
             placeholder="Опис (Markdown)"
-            rows={3}
-            className="w-full rounded-md border border-outline/30 bg-surface-container-high p-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none"
+            rows={2}
+            className="w-full resize-none rounded-md border border-outline/30 bg-surface-container-high p-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none"
           />
 
           {/* List */}
@@ -108,10 +127,27 @@ export function TaskFormDialog({ task, taskLists, familyMembers, onSave, onClose
               className="h-10 flex-1 rounded-md border border-outline/30 bg-surface-container-high px-3 text-sm text-foreground focus:border-primary focus:outline-none"
             >
               <option value="">Без списку</option>
-              {taskLists.map((l) => (
+              {localLists.map((l) => (
                 <option key={l.id} value={l.id}>{l.name}</option>
               ))}
             </select>
+            {showNewList ? (
+              <div className="flex items-center gap-1">
+                <input
+                  value={newListName}
+                  onChange={(e) => setNewListName(e.target.value)}
+                  placeholder="Новий список"
+                  autoFocus
+                  onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleCreateList())}
+                  className="h-10 w-28 rounded-md border border-outline/30 bg-surface-container-high px-2 text-sm focus:border-primary focus:outline-none"
+                />
+                <button type="button" onClick={() => setShowNewList(false)} className="text-muted-foreground"><X className="size-4" /></button>
+              </div>
+            ) : (
+              <button type="button" onClick={() => setShowNewList(true)} className="flex h-10 items-center gap-1 rounded-md px-2 text-sm text-muted-foreground hover:bg-surface-container-high">
+                <Plus className="size-4" />
+              </button>
+            )}
           </div>
 
           {/* Assignee */}

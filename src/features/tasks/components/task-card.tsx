@@ -25,10 +25,13 @@ export function TaskCard({ task, onToggle, onEdit, onDelete, compact }: TaskCard
   const isDone = task.status === 'done' || task.status === 'archived'
 
   return (
-    <div className={cn(
-      'group rounded-md border border-outline-variant/30 bg-surface px-3 py-2.5 transition-colors hover:border-primary/30',
-      isDone && 'opacity-60'
-    )}>
+    <div
+      onDoubleClick={() => onEdit(task)}
+      className={cn(
+        'group rounded-md border border-outline-variant/30 bg-surface px-3 py-2.5 transition-colors hover:border-primary/30 cursor-pointer',
+        isDone && 'opacity-60'
+      )}
+    >
       <div className="flex items-start gap-2">
         {/* Checkbox */}
         <button

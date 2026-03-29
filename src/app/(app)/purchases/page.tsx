@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { ShoppingCart, Plus, Trash2, X } from 'lucide-react'
+import { ShoppingCart, Plus, Trash2, X, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { usePurchases } from '@/features/purchases/hooks/use-purchases'
+import { purchaseService } from '@/features/purchases/services/purchase-service'
 
 export default function PurchasesPage() {
   const {
@@ -12,16 +13,36 @@ export default function PurchasesPage() {
   } = usePurchases()
 
   const [newItemName, setNewItemName] = useState('')
+  const [newItemQty, setNewItemQty] = useState('')
   const [showNewList, setShowNewList] = useState(false)
   const [newListName, setNewListName] = useState('')
+  const [editingItemId, setEditingItemId] = useState<string | null>(null)
+  const [editName, setEditName] = useState('')
+  const [editQty, setEditQty] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
 
   async function handleAddItem(e: React.FormEvent) {
     e.preventDefault()
     if (!newItemName.trim()) return
-    await addItem(newItemName.trim())
+    await addItem(newItemName.trim(), newItemQty.trim() || undefined)
     setNewItemName('')
+    setNewItemQty('')
     inputRef.current?.focus()
+  }
+
+  function startEdit(itemId: string, name: string, qty: string | null) {
+    setEditingItemId(itemId)
+    setEditName(name)
+    setEditQty(qty || '')
+  }
+
+  async function saveEdit() {
+    if (!editingItemId || !editName.trim()) return
+    await purchaseService.updateItem(editingItemId, { name: editName.trim(), quantity: editQty.trim() || null })
+    // Update local state
+    lists.forEach(() => {}) // trigger re-render via fetchLists
+    setEditingItemId(null)
+    window.location.reload() // simple refresh for now
   }
 
   async function handleCreateList(e: React.FormEvent) {
@@ -74,7 +95,7 @@ export default function PurchasesPage() {
             )}
           >
             {list.name}
-            <span className="text-xs opacity-60">{list.itemCount - list.boughtCount}/{list.itemCount}</span>
+            <span className="text-xs opacity-60">{list.boughtCount}/{list.itemCount}</span>
             {activeListId === list.id && lists.length > 1 && (
               <button
                 onClick={(e) => { e.stopPropagation(); handleDeleteList(list.id) }}
@@ -128,13 +149,19 @@ export default function PurchasesPage() {
       {activeList && (
         <div>
           {/* Quick add */}
-          <form onSubmit={handleAddItem} className="mb-4">
+          <form onSubmit={handleAddItem} className="mb-4 flex gap-2">
             <input
               ref={inputRef}
               value={newItemName}
               onChange={(e) => setNewItemName(e.target.value)}
               placeholder="Додати товар..."
-              className="h-11 w-full rounded-md border border-outline/30 bg-surface-container px-3 text-foreground placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none"
+              className="h-11 flex-1 rounded-md border border-outline/30 bg-surface-container px-3 text-foreground placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none"
+            />
+            <input
+              value={newItemQty}
+              onChange={(e) => setNewItemQty(e.target.value)}
+              placeholder="К-сть (2 шт, 1 кг)"
+              className="h-11 w-36 rounded-md border border-outline/30 bg-surface-container px-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none"
             />
           </form>
 
@@ -163,23 +190,51 @@ export default function PurchasesPage() {
                   )}
                 </button>
 
-                {/* Name + quantity */}
-                <div className="min-w-0 flex-1">
-                  <span className={cn('text-sm', item.isBought && 'line-through text-muted-foreground')}>
-                    {item.name}
-                  </span>
-                  {item.quantity && (
-                    <span className="ml-2 text-xs text-muted-foreground">{item.quantity}</span>
-                  )}
-                </div>
+                {/* Name + quantity — editable on double click */}
+                {editingItemId === item.id ? (
+                  <form onSubmit={(e) => { e.preventDefault(); saveEdit() }} className="flex flex-1 items-center gap-2">
+                    <input
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      autoFocus
+                      className="h-8 flex-1 rounded-md border border-primary bg-surface-container px-2 text-sm focus:outline-none"
+                    />
+                    <input
+                      value={editQty}
+                      onChange={(e) => setEditQty(e.target.value)}
+                      placeholder="К-сть"
+                      className="h-8 w-24 rounded-md border border-outline/30 bg-surface-container px-2 text-sm focus:border-primary focus:outline-none"
+                    />
+                    <button type="submit" className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/15 text-primary">
+                      <Check className="size-3.5" />
+                    </button>
+                    <button type="button" onClick={() => setEditingItemId(null)} className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-surface-container">
+                      <X className="size-3.5" />
+                    </button>
+                  </form>
+                ) : (
+                  <div
+                    className="min-w-0 flex-1 cursor-pointer"
+                    onDoubleClick={() => startEdit(item.id, item.name, item.quantity)}
+                  >
+                    <span className={cn('text-sm', item.isBought && 'line-through text-muted-foreground')}>
+                      {item.name}
+                    </span>
+                    {item.quantity && (
+                      <span className="ml-2 text-xs text-muted-foreground">{item.quantity}</span>
+                    )}
+                  </div>
+                )}
 
                 {/* Delete */}
-                <button
-                  onClick={() => deleteItem(item.id)}
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
-                >
-                  <Trash2 className="size-3.5" />
-                </button>
+                {editingItemId !== item.id && (
+                  <button
+                    onClick={() => deleteItem(item.id)}
+                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
+                  >
+                    <Trash2 className="size-3.5" />
+                  </button>
+                )}
               </div>
             ))}
           </div>
