@@ -89,7 +89,7 @@ export function TaskFormDialog({ task, taskLists, familyMembers, onSave, onClose
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
 
       {/* Dialog */}
-      <div className="relative w-full max-w-lg rounded-lg bg-surface-container p-6 shadow-2xl">
+      <div className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-lg bg-surface-container p-6 shadow-2xl">
         {/* Close */}
         <button onClick={onClose} className="absolute right-4 top-4 text-muted-foreground hover:text-foreground">
           <X className="size-5" />
@@ -118,7 +118,7 @@ export function TaskFormDialog({ task, taskLists, familyMembers, onSave, onClose
             }}
             placeholder="Опис (Markdown)"
             rows={2}
-            className="w-full resize-none rounded-md border border-outline/30 bg-surface-container-high p-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none"
+            className="max-h-[200px] w-full resize-none overflow-y-auto rounded-md border border-outline/30 bg-surface-container-high p-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none"
           />
 
           {/* List */}
