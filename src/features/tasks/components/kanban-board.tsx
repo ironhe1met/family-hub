@@ -117,6 +117,15 @@ export function KanbanBoard({ tasks, onToggle, onEdit, onDelete, onStatusChange 
     for (const task of tasks) {
       if (result[task.status]) result[task.status].push(task)
     }
+    // Sort each column: tasks with date first (by date asc), then without date
+    for (const key of Object.keys(result)) {
+      result[key].sort((a, b) => {
+        if (a.dueDate && b.dueDate) return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
+        if (a.dueDate && !b.dueDate) return -1
+        if (!a.dueDate && b.dueDate) return 1
+        return a.sortOrder - b.sortOrder
+      })
+    }
     return result
   }, [tasks])
 
