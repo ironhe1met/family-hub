@@ -107,6 +107,9 @@ export function TaskFormDialog({ task, taskLists, familyMembers, onSave, onClose
 
           {/* Description — auto-resize */}
           <textarea
+            ref={(el) => {
+              if (el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px' }
+            }}
             value={description}
             onChange={(e) => {
               setDescription(e.target.value)
@@ -151,7 +154,7 @@ export function TaskFormDialog({ task, taskLists, familyMembers, onSave, onClose
           </div>
 
           {/* Assignee */}
-          {familyMembers && familyMembers.length > 1 && (
+          {familyMembers && familyMembers.length > 0 && (
             <div className="flex items-center gap-3">
               <User className="size-4 shrink-0 text-muted-foreground/50" />
               <select

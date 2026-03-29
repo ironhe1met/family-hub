@@ -31,6 +31,12 @@ export default function TasksPage() {
   const [view, setView] = useState<ViewMode>('kanban')
   const [editingTask, setEditingTask] = useState<Task | null>(null)
   const [showCreate, setShowCreate] = useState(false)
+  const [filterListId, setFilterListId] = useState<string>('')
+
+  // Filter tasks by list
+  const filteredTasks = filterListId
+    ? tasks.filter((t) => t.listId === filterListId)
+    : tasks
 
   async function handleSave(data: Record<string, unknown>) {
     if (editingTask) {
@@ -62,11 +68,39 @@ export default function TasksPage() {
   return (
     <div>
       {/* Header */}
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold">Задачі</h1>
 
-        {/* View toggle */}
-        <div className="flex h-9 rounded-md border border-outline-variant/30">
+        <div className="flex items-center gap-3">
+          {/* List filter */}
+          {taskLists.length > 0 && (
+            <div className="flex items-center gap-1 overflow-x-auto">
+              <button
+                onClick={() => setFilterListId('')}
+                className={cn(
+                  'whitespace-nowrap rounded-md px-2.5 py-1 text-xs font-medium transition-colors',
+                  !filterListId ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:bg-surface-container'
+                )}
+              >
+                Всі
+              </button>
+              {taskLists.map((list) => (
+                <button
+                  key={list.id}
+                  onClick={() => setFilterListId(list.id)}
+                  className={cn(
+                    'whitespace-nowrap rounded-md px-2.5 py-1 text-xs font-medium transition-colors',
+                    filterListId === list.id ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:bg-surface-container'
+                  )}
+                >
+                  {list.name}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* View toggle */}
+          <div className="flex h-9 rounded-md border border-outline-variant/30">
           <button
             onClick={() => setView('kanban')}
             className={cn(
@@ -88,10 +122,11 @@ export default function TasksPage() {
             Список
           </button>
         </div>
+        </div>
       </div>
 
       {/* Empty state */}
-      {tasks.length === 0 && (
+      {filteredTasks.length === 0 && tasks.length === 0 && (
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <ListChecks className="mb-4 size-16 text-muted-foreground/30" />
           <h2 className="text-lg font-medium">Задач поки немає</h2>
@@ -106,9 +141,9 @@ export default function TasksPage() {
       )}
 
       {/* Content */}
-      {tasks.length > 0 && view === 'kanban' && (
+      {filteredTasks.length > 0 && view === 'kanban' && (
         <KanbanBoard
-          tasks={tasks}
+          tasks={filteredTasks}
           onToggle={toggleStatus}
           onEdit={setEditingTask}
           onDelete={handleDelete}
@@ -116,9 +151,9 @@ export default function TasksPage() {
         />
       )}
 
-      {tasks.length > 0 && view === 'list' && (
+      {filteredTasks.length > 0 && view === 'list' && (
         <TaskListView
-          tasks={tasks}
+          tasks={filteredTasks}
           onToggle={toggleStatus}
           onEdit={setEditingTask}
           onDelete={handleDelete}
