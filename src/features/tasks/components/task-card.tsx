@@ -27,7 +27,6 @@ export function TaskCard({ task, onToggle, onEdit, onDelete, compact }: TaskCard
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
-  // Close menu on click outside
   useEffect(() => {
     if (!menuOpen) return
     function handleClick(e: MouseEvent) {
@@ -47,12 +46,13 @@ export function TaskCard({ task, onToggle, onEdit, onDelete, compact }: TaskCard
         isDone && 'opacity-60'
       )}
     >
-      <div className="flex items-start gap-2">
-        {/* Checkbox */}
+      {/* Main row: checkbox — content — menu (all vertically centered) */}
+      <div className="flex items-center gap-2">
+        {/* Checkbox — centered */}
         <button
           onClick={(e) => { e.stopPropagation(); onToggle(task.id) }}
           className={cn(
-            'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-[3px] border-2 transition-colors',
+            'flex h-5 w-5 shrink-0 items-center justify-center rounded-[3px] border-2 transition-colors',
             isDone ? 'border-success bg-success text-white' : 'border-outline hover:border-primary'
           )}
         >
@@ -65,52 +65,52 @@ export function TaskCard({ task, onToggle, onEdit, onDelete, compact }: TaskCard
 
         {/* Content */}
         <div className="min-w-0 flex-1">
+          {/* Title row */}
           <div className="flex items-center gap-1.5">
-            {/* Priority dot */}
             <span className={cn('size-2 shrink-0 rounded-full', priorityColors[task.priority])} />
-            {/* Title */}
-            <span className={cn('text-sm font-medium', isDone && 'line-through text-muted-foreground')}>
+            <span className={cn('text-sm font-medium leading-tight', isDone && 'line-through text-muted-foreground')}>
               {task.title}
             </span>
           </div>
 
-          {/* Meta row */}
-          <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-            {/* Due date */}
-            {task.dueDate && (
-              <span className={cn('flex items-center gap-1', isOverdue && 'text-destructive font-medium')}>
-                <Calendar className="size-3" />
-                {format(new Date(task.dueDate), 'd MMM', { locale: uk })}
-                {task.dueTime && ` ${task.dueTime}`}
-              </span>
-            )}
+          {/* Info row — date, subtasks, comments */}
+          {(task.dueDate || task.subtaskCount > 0 || task.commentCount > 0) && (
+            <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+              {task.dueDate && (
+                <span className={cn('flex items-center gap-1', isOverdue && 'text-destructive font-medium')}>
+                  <Calendar className="size-3" />
+                  {format(new Date(task.dueDate), 'd MMM', { locale: uk })}
+                  {task.dueTime && <span className="opacity-70">{task.dueTime}</span>}
+                </span>
+              )}
+              {task.subtaskCount > 0 && (
+                <span className="flex items-center gap-1">
+                  <CheckSquare className="size-3" />
+                  {task.subtaskDoneCount}/{task.subtaskCount}
+                </span>
+              )}
+              {task.commentCount > 0 && (
+                <span className="flex items-center gap-1">
+                  <MessageSquare className="size-3" />
+                  {task.commentCount}
+                </span>
+              )}
+            </div>
+          )}
 
-            {/* Subtask progress */}
-            {task.subtaskCount > 0 && (
-              <span className="flex items-center gap-1">
-                <CheckSquare className="size-3" />
-                {task.subtaskDoneCount}/{task.subtaskCount}
-              </span>
-            )}
-
-            {/* Comment count */}
-            {task.commentCount > 0 && (
-              <span className="flex items-center gap-1">
-                <MessageSquare className="size-3" />
-                {task.commentCount}
-              </span>
-            )}
-
-            {/* Assignee */}
+          {/* Assignee row — separate line */}
+          <div className="mt-1.5">
             {task.assignedTo ? (
-              <span className="flex items-center gap-1">
-                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary/20 text-[10px] font-bold text-primary">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
+                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary/20 text-[9px] font-bold">
                   {task.assignedTo.firstName[0]}
                 </span>
-                <span>{task.assignedTo.firstName}</span>
+                {task.assignedTo.firstName}
               </span>
             ) : (
-              <span className="italic opacity-50">Не призначена</span>
+              <span className="inline-flex items-center gap-1 rounded-full bg-surface-container px-2 py-0.5 text-[11px] text-muted-foreground/60">
+                Не призначена
+              </span>
             )}
           </div>
 
@@ -130,8 +130,8 @@ export function TaskCard({ task, onToggle, onEdit, onDelete, compact }: TaskCard
           )}
         </div>
 
-        {/* Three dots menu */}
-        <div ref={menuRef} className="relative shrink-0">
+        {/* Three dots — centered */}
+        <div ref={menuRef} className="relative shrink-0 self-center">
           <button
             onClick={(e) => { e.stopPropagation(); setMenuOpen(!menuOpen) }}
             className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-surface-container group-hover:opacity-100"
@@ -140,19 +140,19 @@ export function TaskCard({ task, onToggle, onEdit, onDelete, compact }: TaskCard
           </button>
 
           {menuOpen && (
-            <div className="absolute right-0 top-8 z-20 w-40 rounded-md border border-outline-variant/30 bg-surface-container py-1 shadow-lg">
+            <div className="absolute right-0 top-full z-30 mt-1 w-44 rounded-md border border-outline-variant/30 bg-surface-container py-1 shadow-xl">
               <button
                 onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onEdit(task) }}
-                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-surface-container-high"
+                className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-foreground hover:bg-surface-container-high"
               >
-                <Pencil className="size-3.5" />
+                <Pencil className="size-4 text-muted-foreground" />
                 Редагувати
               </button>
               <button
                 onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onDelete(task.id) }}
-                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-destructive hover:bg-destructive/10"
+                className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-destructive hover:bg-destructive/10"
               >
-                <Trash2 className="size-3.5" />
+                <Trash2 className="size-4" />
                 Видалити
               </button>
             </div>

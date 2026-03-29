@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { LayoutGrid, List, ListChecks, Users } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { LayoutGrid, List, ListChecks, Users, Settings2, Plus, Pencil, Trash2, X, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useTasks } from '@/features/tasks/hooks/use-tasks'
+import { taskListService } from '@/features/tasks/services/task-service'
 import { KanbanBoard } from '@/features/tasks/components/kanban-board'
 import { TaskListView } from '@/features/tasks/components/task-list-view'
 import { TaskFormDialog } from '@/features/tasks/components/task-form-dialog'
@@ -33,6 +34,23 @@ export default function TasksPage() {
   const [editingTask, setEditingTask] = useState<Task | null>(null)
   const [showCreate, setShowCreate] = useState(false)
   const [filterMemberId, setFilterMemberId] = useState<string>('')
+  const [showListManager, setShowListManager] = useState(false)
+  const [editingListId, setEditingListId] = useState<string | null>(null)
+  const [editListName, setEditListName] = useState('')
+  const [newListName, setNewListName] = useState('')
+  const listManagerRef = useRef<HTMLDivElement>(null)
+
+  // Close list manager on click outside
+  useEffect(() => {
+    if (!showListManager) return
+    function handleClick(e: MouseEvent) {
+      if (listManagerRef.current && !listManagerRef.current.contains(e.target as Node)) {
+        setShowListManager(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [showListManager])
 
   // Filter tasks by assigned member
   const filteredTasks = filterMemberId
@@ -70,7 +88,110 @@ export default function TasksPage() {
     <div>
       {/* Header */}
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold">Задачі</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-semibold">Задачі</h1>
+          {/* List manager toggle */}
+          <div className="relative" ref={listManagerRef}>
+            <button
+              onClick={() => setShowListManager(!showListManager)}
+              className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-surface-container"
+              title="Керування списками"
+            >
+              <Settings2 className="size-4" />
+            </button>
+
+            {showListManager && (
+              <div className="absolute left-0 top-full z-30 mt-1 w-64 rounded-lg border border-outline-variant/30 bg-surface-container p-3 shadow-xl">
+                <h3 className="mb-2 text-sm font-medium text-foreground">Списки задач</h3>
+
+                {/* Existing lists */}
+                <div className="space-y-1.5">
+                  {taskLists.map((list) => (
+                    <div key={list.id} className="flex items-center gap-2">
+                      {editingListId === list.id ? (
+                        <>
+                          <input
+                            value={editListName}
+                            onChange={(e) => setEditListName(e.target.value)}
+                            autoFocus
+                            onKeyDown={async (e) => {
+                              if (e.key === 'Enter' && editListName.trim()) {
+                                await taskListService.update(list.id, editListName.trim())
+                                setEditingListId(null)
+                                fetchTasks()
+                              }
+                              if (e.key === 'Escape') setEditingListId(null)
+                            }}
+                            className="h-8 flex-1 rounded-md border border-primary bg-surface-container-high px-2 text-sm focus:outline-none"
+                          />
+                          <button onClick={async () => {
+                            if (editListName.trim()) {
+                              await taskListService.update(list.id, editListName.trim())
+                              setEditingListId(null)
+                              fetchTasks()
+                            }
+                          }} className="text-primary"><Check className="size-4" /></button>
+                          <button onClick={() => setEditingListId(null)} className="text-muted-foreground"><X className="size-4" /></button>
+                        </>
+                      ) : (
+                        <>
+                          <span className="flex-1 text-sm text-foreground">{list.name}</span>
+                          <span className="text-xs text-muted-foreground">{list.taskCount}</span>
+                          <button
+                            onClick={() => { setEditingListId(list.id); setEditListName(list.name) }}
+                            className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:bg-surface-container-high"
+                          >
+                            <Pencil className="size-3" />
+                          </button>
+                          <button
+                            onClick={async () => {
+                              if (confirm(`Видалити список "${list.name}"?`)) {
+                                await taskListService.delete(list.id)
+                                fetchTasks()
+                              }
+                            }}
+                            className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                          >
+                            <Trash2 className="size-3" />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Add new list */}
+                <div className="mt-2 flex items-center gap-1">
+                  <input
+                    value={newListName}
+                    onChange={(e) => setNewListName(e.target.value)}
+                    placeholder="Новий список..."
+                    onKeyDown={async (e) => {
+                      if (e.key === 'Enter' && newListName.trim()) {
+                        await taskListService.create(newListName.trim())
+                        setNewListName('')
+                        fetchTasks()
+                      }
+                    }}
+                    className="h-8 flex-1 rounded-md border border-outline/30 bg-surface-container-high px-2 text-sm placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none"
+                  />
+                  <button
+                    onClick={async () => {
+                      if (newListName.trim()) {
+                        await taskListService.create(newListName.trim())
+                        setNewListName('')
+                        fetchTasks()
+                      }
+                    }}
+                    className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/15 text-primary"
+                  >
+                    <Plus className="size-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
 
         {/* View toggle */}
         <div className="flex h-9 rounded-md border border-outline-variant/30">
