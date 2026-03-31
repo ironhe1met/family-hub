@@ -3,14 +3,16 @@
 import { useState, useRef } from 'react'
 import { ShoppingCart, Plus, Trash2, X, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useConfirm } from '@/components/use-confirm'
 import { usePurchases } from '@/features/purchases/hooks/use-purchases'
 import { purchaseService } from '@/features/purchases/services/purchase-service'
 
 export default function PurchasesPage() {
   const {
     lists, activeList, activeListId, setActiveListId,
-    loading, createList, deleteList, addItem, toggleItem, deleteItem,
+    loading, createList, deleteList, addItem, toggleItem, deleteItem, fetchLists,
   } = usePurchases()
+  const confirm = useConfirm()
 
   const [newItemName, setNewItemName] = useState('')
   const [newItemQty, setNewItemQty] = useState('')
@@ -39,10 +41,8 @@ export default function PurchasesPage() {
   async function saveEdit() {
     if (!editingItemId || !editName.trim()) return
     await purchaseService.updateItem(editingItemId, { name: editName.trim(), quantity: editQty.trim() || null })
-    // Update local state
-    lists.forEach(() => {}) // trigger re-render via fetchLists
     setEditingItemId(null)
-    window.location.reload() // simple refresh for now
+    await fetchLists()
   }
 
   async function handleCreateList(e: React.FormEvent) {
@@ -56,7 +56,7 @@ export default function PurchasesPage() {
   async function handleDeleteList(id: string) {
     const list = lists.find((l) => l.id === id)
     if (!list) return
-    if (!confirm(`Видалити список "${list.name}" та ${list.itemCount} товарів?`)) return
+    if (!await confirm({ message: `Ви впевнені, що хочете видалити список "${list.name}" та ${list.itemCount} товарів?` })) return
     await deleteList(id)
   }
 
@@ -116,8 +116,15 @@ export default function PurchasesPage() {
               placeholder="Назва списку"
               autoFocus
               className="h-8 w-32 rounded-md border border-outline/30 bg-surface-container px-2 text-sm focus:border-primary focus:outline-none"
-              onBlur={() => { if (!newListName.trim()) setShowNewList(false) }}
             />
+            <button type="submit" disabled={!newListName.trim()}
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/15 text-primary disabled:opacity-30">
+              <Check className="size-3.5" />
+            </button>
+            <button type="button" onClick={() => { setShowNewList(false); setNewListName('') }}
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-surface-container">
+              <X className="size-3.5" />
+            </button>
           </form>
         ) : (
           <button
@@ -163,6 +170,13 @@ export default function PurchasesPage() {
               placeholder="К-сть (2 шт, 1 кг)"
               className="h-11 w-36 rounded-md border border-outline/30 bg-surface-container px-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none"
             />
+            <button
+              type="submit"
+              disabled={!newItemName.trim()}
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-primary text-on-primary disabled:opacity-30"
+            >
+              <Plus className="size-5" />
+            </button>
           </form>
 
           {/* Items */}

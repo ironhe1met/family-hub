@@ -1,13 +1,14 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { LayoutGrid, List, ListChecks, Users, Settings2, Plus, Pencil, Trash2, X, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useConfirm } from '@/components/use-confirm'
 import { useTasks } from '@/features/tasks/hooks/use-tasks'
 import { taskListService } from '@/features/tasks/services/task-service'
 import { KanbanBoard } from '@/features/tasks/components/kanban-board'
 import { TaskListView } from '@/features/tasks/components/task-list-view'
-import { TaskFormDialog } from '@/features/tasks/components/task-form-dialog'
 import type { Task } from '@/features/tasks/services/task-service'
 
 type ViewMode = 'kanban' | 'list'
@@ -20,7 +21,9 @@ interface FamilyMember {
 }
 
 export default function TasksPage() {
-  const { tasks, taskLists, loading, createTask, updateTask, deleteTask, toggleStatus, changeStatus, fetchTasks } = useTasks()
+  const router = useRouter()
+  const { tasks, taskLists, loading, deleteTask, toggleStatus, changeStatus, fetchTasks } = useTasks()
+  const confirm = useConfirm()
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([])
 
   useEffect(() => {
@@ -31,8 +34,6 @@ export default function TasksPage() {
   }, [])
 
   const [view, setView] = useState<ViewMode>('kanban')
-  const [editingTask, setEditingTask] = useState<Task | null>(null)
-  const [showCreate, setShowCreate] = useState(false)
   const [filterMemberId, setFilterMemberId] = useState<string>('')
   const [showListManager, setShowListManager] = useState(false)
   const [editingListId, setEditingListId] = useState<string | null>(null)
@@ -40,7 +41,6 @@ export default function TasksPage() {
   const [newListName, setNewListName] = useState('')
   const listManagerRef = useRef<HTMLDivElement>(null)
 
-  // Close list manager on click outside
   useEffect(() => {
     if (!showListManager) return
     function handleClick(e: MouseEvent) {
@@ -52,23 +52,16 @@ export default function TasksPage() {
     return () => document.removeEventListener('mousedown', handleClick)
   }, [showListManager])
 
-  // Filter tasks by assigned member
   const filteredTasks = filterMemberId
     ? tasks.filter((t) => t.assignedTo?.id === filterMemberId)
     : tasks
 
-  async function handleSave(data: Record<string, unknown>) {
-    if (editingTask) {
-      await updateTask(editingTask.id, data)
-    } else {
-      await createTask(data as Parameters<typeof createTask>[0])
-    }
+  function handleOpenTask(task: Task) {
+    router.push(`/tasks/${task.id}`)
   }
 
-  function handleDelete(id: string) {
-    if (confirm('Видалити задачу?')) {
-      deleteTask(id)
-    }
+  async function handleDelete(id: string) {
+    if (await confirm({ message: 'Ви впевнені, що хочете видалити задачу?' })) deleteTask(id)
   }
 
   if (loading) {
@@ -90,7 +83,6 @@ export default function TasksPage() {
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <h1 className="text-2xl font-semibold">Задачі</h1>
-          {/* List manager toggle */}
           <div className="relative" ref={listManagerRef}>
             <button
               onClick={() => setShowListManager(!showListManager)}
@@ -103,8 +95,6 @@ export default function TasksPage() {
             {showListManager && (
               <div className="absolute left-0 top-full z-30 mt-1 w-64 rounded-lg border border-outline-variant/30 bg-surface-container p-3 shadow-xl">
                 <h3 className="mb-2 text-sm font-medium text-foreground">Списки задач</h3>
-
-                {/* Existing lists */}
                 <div className="space-y-1.5">
                   {taskLists.map((list) => (
                     <div key={list.id} className="flex items-center gap-2">
@@ -115,135 +105,60 @@ export default function TasksPage() {
                             onChange={(e) => setEditListName(e.target.value)}
                             autoFocus
                             onKeyDown={async (e) => {
-                              if (e.key === 'Enter' && editListName.trim()) {
-                                await taskListService.update(list.id, editListName.trim())
-                                setEditingListId(null)
-                                fetchTasks()
-                              }
+                              if (e.key === 'Enter' && editListName.trim()) { await taskListService.update(list.id, editListName.trim()); setEditingListId(null); fetchTasks() }
                               if (e.key === 'Escape') setEditingListId(null)
                             }}
                             className="h-8 flex-1 rounded-md border border-primary bg-surface-container-high px-2 text-sm focus:outline-none"
                           />
-                          <button onClick={async () => {
-                            if (editListName.trim()) {
-                              await taskListService.update(list.id, editListName.trim())
-                              setEditingListId(null)
-                              fetchTasks()
-                            }
-                          }} className="text-primary"><Check className="size-4" /></button>
+                          <button onClick={async () => { if (editListName.trim()) { await taskListService.update(list.id, editListName.trim()); setEditingListId(null); fetchTasks() } }} className="text-primary"><Check className="size-4" /></button>
                           <button onClick={() => setEditingListId(null)} className="text-muted-foreground"><X className="size-4" /></button>
                         </>
                       ) : (
                         <>
                           <span className="flex-1 text-sm text-foreground">{list.name}</span>
                           <span className="text-xs text-muted-foreground">{list.taskCount}</span>
-                          <button
-                            onClick={() => { setEditingListId(list.id); setEditListName(list.name) }}
-                            className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:bg-surface-container-high"
-                          >
-                            <Pencil className="size-3" />
-                          </button>
-                          <button
-                            onClick={async () => {
-                              if (confirm(`Видалити список "${list.name}"?`)) {
-                                await taskListService.delete(list.id)
-                                fetchTasks()
-                              }
-                            }}
-                            className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                          >
-                            <Trash2 className="size-3" />
-                          </button>
+                          <button onClick={() => { setEditingListId(list.id); setEditListName(list.name) }} className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:bg-surface-container-high"><Pencil className="size-3" /></button>
+                          <button onClick={async () => { if (await confirm({ message: `Ви впевнені, що хочете видалити список "${list.name}"?` })) { await taskListService.delete(list.id); fetchTasks() } }} className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:bg-destructive/10 hover:text-destructive"><Trash2 className="size-3" /></button>
                         </>
                       )}
                     </div>
                   ))}
                 </div>
-
-                {/* Add new list */}
                 <div className="mt-2 flex items-center gap-1">
                   <input
                     value={newListName}
                     onChange={(e) => setNewListName(e.target.value)}
                     placeholder="Новий список..."
-                    onKeyDown={async (e) => {
-                      if (e.key === 'Enter' && newListName.trim()) {
-                        await taskListService.create(newListName.trim())
-                        setNewListName('')
-                        fetchTasks()
-                      }
-                    }}
+                    onKeyDown={async (e) => { if (e.key === 'Enter' && newListName.trim()) { await taskListService.create(newListName.trim()); setNewListName(''); fetchTasks() } }}
                     className="h-8 flex-1 rounded-md border border-outline/30 bg-surface-container-high px-2 text-sm placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none"
                   />
-                  <button
-                    onClick={async () => {
-                      if (newListName.trim()) {
-                        await taskListService.create(newListName.trim())
-                        setNewListName('')
-                        fetchTasks()
-                      }
-                    }}
-                    className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/15 text-primary"
-                  >
-                    <Plus className="size-4" />
-                  </button>
+                  <button onClick={async () => { if (newListName.trim()) { await taskListService.create(newListName.trim()); setNewListName(''); fetchTasks() } }} className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/15 text-primary"><Plus className="size-4" /></button>
                 </div>
               </div>
             )}
           </div>
         </div>
 
-        {/* View toggle */}
         <div className="flex h-9 rounded-md border border-outline-variant/30">
-          <button
-            onClick={() => setView('kanban')}
-            className={cn(
-              'flex items-center gap-1.5 px-3 text-sm transition-colors',
-              view === 'kanban' ? 'bg-primary/10 text-primary' : 'text-muted-foreground'
-            )}
-          >
-            <LayoutGrid className="size-4" />
-            Kanban
+          <button onClick={() => setView('kanban')} className={cn('flex items-center gap-1.5 px-3 text-sm transition-colors', view === 'kanban' ? 'bg-primary/10 text-primary' : 'text-muted-foreground')}>
+            <LayoutGrid className="size-4" /> Kanban
           </button>
-          <button
-            onClick={() => setView('list')}
-            className={cn(
-              'flex items-center gap-1.5 px-3 text-sm transition-colors',
-              view === 'list' ? 'bg-primary/10 text-primary' : 'text-muted-foreground'
-            )}
-          >
-            <List className="size-4" />
-            Список
+          <button onClick={() => setView('list')} className={cn('flex items-center gap-1.5 px-3 text-sm transition-colors', view === 'list' ? 'bg-primary/10 text-primary' : 'text-muted-foreground')}>
+            <List className="size-4" /> Список
           </button>
         </div>
       </div>
 
-      {/* People filter tabs */}
+      {/* People filter */}
       <div className="mb-4 flex items-center gap-1 overflow-x-auto">
-        <button
-          onClick={() => setFilterMemberId('')}
-          className={cn(
-            'flex items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
-            !filterMemberId ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:bg-surface-container'
-          )}
-        >
-          <Users className="size-4" />
-          Всі задачі
+        <button onClick={() => setFilterMemberId('')} className={cn('flex items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-colors', !filterMemberId ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:bg-surface-container')}>
+          <Users className="size-4" /> Всі задачі
         </button>
         {familyMembers.map((member) => {
           const count = tasks.filter((t) => t.assignedTo?.id === member.id).length
           return (
-            <button
-              key={member.id}
-              onClick={() => setFilterMemberId(member.id)}
-              className={cn(
-                'flex items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
-                filterMemberId === member.id ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:bg-surface-container'
-              )}
-            >
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/20 text-[10px] font-bold text-primary">
-                {member.firstName[0]}
-              </span>
+            <button key={member.id} onClick={() => setFilterMemberId(member.id)} className={cn('flex items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-colors', filterMemberId === member.id ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:bg-surface-container')}>
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/20 text-[10px] font-bold text-primary">{member.firstName[0]}</span>
               {member.firstName}
               {count > 0 && <span className="text-xs opacity-60">{count}</span>}
             </button>
@@ -257,62 +172,32 @@ export default function TasksPage() {
           <ListChecks className="mb-4 size-16 text-muted-foreground/30" />
           <h2 className="text-lg font-medium">Задач поки немає</h2>
           <p className="mt-1 text-sm text-muted-foreground">Створіть першу задачу</p>
-          <button
-            onClick={() => setShowCreate(true)}
-            className="mt-4 h-10 rounded-full bg-primary px-6 text-sm font-medium text-on-primary hover:opacity-90"
-          >
-            Створити задачу
-          </button>
+          <button onClick={() => router.push('/tasks/new')} className="mt-4 h-10 rounded-full bg-primary px-6 text-sm font-medium text-on-primary hover:opacity-90">Створити задачу</button>
         </div>
       )}
 
-      {/* Filtered empty */}
       {filteredTasks.length === 0 && tasks.length > 0 && (
-        <div className="py-12 text-center text-sm text-muted-foreground">
-          Немає задач для цього фільтра
-        </div>
+        <div className="py-12 text-center text-sm text-muted-foreground">Немає задач для цього фільтра</div>
       )}
 
       {/* Content */}
       {filteredTasks.length > 0 && view === 'kanban' && (
-        <KanbanBoard
-          tasks={filteredTasks}
-          onToggle={toggleStatus}
-          onEdit={setEditingTask}
-          onDelete={handleDelete}
-          onStatusChange={changeStatus}
-        />
+        <KanbanBoard tasks={filteredTasks} onToggle={toggleStatus} onEdit={handleOpenTask} onDelete={handleDelete} onStatusChange={changeStatus} />
       )}
 
       {filteredTasks.length > 0 && view === 'list' && (
-        <TaskListView
-          tasks={filteredTasks}
-          onToggle={toggleStatus}
-          onEdit={setEditingTask}
-          onDelete={handleDelete}
-        />
+        <TaskListView tasks={filteredTasks} onToggle={toggleStatus} onEdit={handleOpenTask} onDelete={handleDelete} />
       )}
 
-      {/* FAB — create task */}
+      {/* FAB */}
       <button
-        onClick={() => setShowCreate(true)}
+        onClick={() => router.push('/tasks/new')}
         className="fixed bottom-6 right-6 z-30 flex h-14 w-14 items-center justify-center rounded-xl bg-primary text-on-primary shadow-lg glow-primary transition-transform hover:scale-105 active:scale-90"
       >
         <svg className="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
         </svg>
       </button>
-
-      {/* Task form dialog */}
-      {(showCreate || editingTask) && (
-        <TaskFormDialog
-          task={editingTask}
-          taskLists={taskLists}
-          familyMembers={familyMembers}
-          onSave={async (data) => { await handleSave(data); await fetchTasks() }}
-          onClose={() => { setShowCreate(false); setEditingTask(null) }}
-        />
-      )}
     </div>
   )
 }

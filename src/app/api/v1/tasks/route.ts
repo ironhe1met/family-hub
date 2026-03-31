@@ -23,9 +23,12 @@ export async function GET(request: Request) {
     familyId: auth.user.familyId,
   }
 
+  const projectId = searchParams.get('projectId')
+
   if (status) where.status = status
   if (listId) where.listId = listId
   if (sprintId) where.sprintId = sprintId
+  if (projectId) where.projectId = projectId
   if (assignedTo) where.assignedToId = assignedTo
   if (priority) where.priority = priority
   if (tagId) where.tags = { some: { id: tagId } }
@@ -63,6 +66,7 @@ export async function GET(request: Request) {
     dueTime: task.dueTime,
     listId: task.listId,
     sprintId: task.sprintId,
+    projectId: task.projectId,
     createdBy: task.createdBy,
     assignedTo: task.assignedTo,
     tags: task.tags,
@@ -85,7 +89,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json()
-    const { title, description, status, priority, dueDate, dueTime, listId, sprintId, assignedTo, tagIds, isRecurring, recurrenceRule } = body
+    const { title, description, status, priority, dueDate, dueTime, listId, sprintId, projectId, assignedTo, tagIds, isRecurring, recurrenceRule } = body
 
     if (!title?.trim()) {
       return NextResponse.json({ error: 'Назва обов\'язкова', code: 'VALIDATION_ERROR' }, { status: 400 })
@@ -103,6 +107,7 @@ export async function POST(request: Request) {
         dueTime: dueTime || null,
         listId: listId || null,
         sprintId: sprintId || null,
+        projectId: projectId || null,
         assignedToId: assignedTo || null,
         isRecurring: isRecurring || false,
         recurrenceRule: recurrenceRule || undefined,

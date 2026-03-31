@@ -2,6 +2,26 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { requireAuth } from '@/server/auth-middleware'
 
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const auth = await requireAuth()
+  if (auth.error) return auth.error
+  const { id } = await params
+
+  const idea = await prisma.idea.findFirst({
+    where: { id, familyId: auth.user.familyId },
+    include: {
+      createdBy: { select: { id: true, firstName: true, avatarUrl: true } },
+      tags: { select: { id: true, name: true, color: true } },
+    },
+  })
+
+  if (!idea) {
+    return NextResponse.json({ error: 'Ідею не знайдено', code: 'NOT_FOUND' }, { status: 404 })
+  }
+
+  return NextResponse.json({ idea })
+}
+
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const auth = await requireAuth()
   if (auth.error) return auth.error

@@ -12,15 +12,16 @@ export function usePurchases() {
     try {
       const data = await purchaseService.getLists()
       setLists(data.lists)
-      if (!activeListId && data.lists.length > 0) {
-        setActiveListId(data.lists[0].id)
-      }
+      setActiveListId((prev) => {
+        if (!prev && data.lists.length > 0) return data.lists[0].id
+        return prev
+      })
     } catch (err) {
       console.error('Fetch purchases error:', err)
     } finally {
       setLoading(false)
     }
-  }, [activeListId])
+  }, [])
 
   useEffect(() => { fetchLists() }, [fetchLists])
 
@@ -102,5 +103,6 @@ export function usePurchases() {
     addItem,
     toggleItem,
     deleteItem,
+    fetchLists,
   }
 }

@@ -20,6 +20,7 @@ export interface Task {
   dueTime: string | null
   listId: string | null
   sprintId: string | null
+  projectId: string | null
   createdBy: TaskUser
   assignedTo: TaskUser | null
   tags: TaskTag[]
@@ -30,6 +31,20 @@ export interface Task {
   sortOrder: number
   createdAt: string
   updatedAt: string
+}
+
+export interface TaskInput {
+  title?: string
+  description?: string | null
+  status?: string
+  priority?: string
+  dueDate?: string | null
+  dueTime?: string | null
+  listId?: string | null
+  sprintId?: string | null
+  projectId?: string | null
+  assignedTo?: string | null
+  tagIds?: string[]
 }
 
 export interface TaskList {
@@ -74,14 +89,14 @@ export const taskService = {
 
   get: (id: string) => fetchJSON<Task & { subtasks: Subtask[]; comments: Comment[] }>(`${API}/tasks/${id}`),
 
-  create: (data: Partial<Task> & { title: string; tagIds?: string[] }) =>
+  create: (data: TaskInput & { title: string }) =>
     fetchJSON<{ task: Task }>(`${API}/tasks`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     }),
 
-  update: (id: string, data: Partial<Task> & { tagIds?: string[] }) =>
+  update: (id: string, data: TaskInput) =>
     fetchJSON<{ task: Task }>(`${API}/tasks/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -130,6 +145,16 @@ export const taskService = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ content }),
     }),
+
+  updateComment: (taskId: string, commentId: string, content: string) =>
+    fetchJSON<Comment>(`${API}/tasks/${taskId}/comments/${commentId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content }),
+    }),
+
+  deleteComment: (taskId: string, commentId: string) =>
+    fetchJSON<null>(`${API}/tasks/${taskId}/comments/${commentId}`, { method: 'DELETE' }),
 }
 
 // Task Lists

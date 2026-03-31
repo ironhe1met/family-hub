@@ -38,7 +38,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
   try {
     const body = await request.json()
-    const { title, description, status, priority, dueDate, dueTime, listId, sprintId, assignedTo, tagIds } = body
+    const { title, description, status, priority, dueDate, dueTime, listId, sprintId, projectId, assignedTo, tagIds } = body
 
     // Verify task belongs to family
     const existing = await prisma.task.findFirst({ where: { id, familyId: auth.user.familyId } })
@@ -55,6 +55,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     if (dueTime !== undefined) data.dueTime = dueTime
     if (listId !== undefined) data.listId = listId || null
     if (sprintId !== undefined) data.sprintId = sprintId || null
+    if (projectId !== undefined) data.projectId = projectId || null
     if (assignedTo !== undefined) data.assignedToId = assignedTo || null
 
     const task = await prisma.task.update({

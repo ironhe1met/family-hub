@@ -23,6 +23,9 @@ async function fetchJSON<T>(url: string, init?: RequestInit): Promise<T> {
 }
 
 export const ideaService = {
+  getById: (id: string) =>
+    fetchJSON<{ idea: Idea }>(`${API}/ideas/${id}`),
+
   list: (params?: Record<string, string>) => {
     const qs = params ? '?' + new URLSearchParams(params).toString() : ''
     return fetchJSON<{ ideas: Idea[]; total: number }>(`${API}/ideas${qs}`)
